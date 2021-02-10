@@ -2,7 +2,7 @@
 
 # Windows VM credentials
 ADMIN_USERNAME = 'cloud-admin'
-ADMIN_PASSWORD = 'soMeCompLexPassrd9!'
+ADMIN_PASSWORD = 'soMeCompLexPassrd9!'  # CHANGE THIS!
 
 SUBSCRIPTIONS = ['your-main-sub', 'optional-sub']  # CHANGE THIS!
 RESOURCE_GROUP = 'your-vm-resource-group-name'    # CHANGE THIS!
