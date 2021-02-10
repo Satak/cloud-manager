@@ -12,11 +12,12 @@ You must install all these prerequisites and authenticate to Azure with az cli b
 - Install Azure CLI (<https://docs.microsoft.com/en-us/cli/azure/install-azure-cli-windows?tabs=azure-cli>)
   - run `az login` to authenticate to your Azure subscription
 - Install `dearpygui` (Python library: <https://github.com/hoffstadt/DearPyGui>)
+  - run `pip install dearpygui`
 
 **Before first use, change settings in the `config.py` to fit your Azure environment settings!**
 
 ## Examples
 
-![cloud manager main](images\cloud_manager.PNG 'Cloud Manager Main')
+![cloud manager main](./images/cloud_manager.PNG 'Cloud Manager Main')
 
-![cloud manager log](images\cloud_manager_log.PNG 'Cloud Manager Log')
+![cloud manager log](./images/cloud_manager_log.PNG 'Cloud Manager Log')
