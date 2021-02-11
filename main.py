@@ -22,7 +22,7 @@ core.set_main_window_resizable(False)
 def get_data():
     return {
         'vm_name': core.get_value('vm_name'),
-        'subscription': SUBSCRIPTIONS[core.get_value('subscription')],
+        'subscription': get_current_subscription(),
         'resource_group': core.get_value('resource_group'),
         'network': core.get_value('network'),
         'subnet': core.get_value('subnet'),
@@ -33,7 +33,7 @@ def get_data():
 def get_data_vm():
     return {
         'vm_name': core.get_value('vm_combo'),
-        'subscription': SUBSCRIPTIONS[core.get_value('subscription_vms')],
+        'subscription': get_current_subscription_vms(),
         'resource_group': core.get_value('resource_group_vms'),
     }
 
@@ -56,6 +56,13 @@ def print_resources(resources):
 def run_win_cmd(cmd):
     process = subprocess.Popen(cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     return [line.decode().strip() for line in process.stdout if line.decode().strip()]
+
+
+def get_net_sub(subnet_id):
+    ar = subnet_id.split('/')
+    subnet = ar[-1]
+    network = ar[-3]
+    return network, subnet
 
 # ------- Azure -------
 
@@ -105,29 +112,18 @@ def delete_vm(vm_name, subscription, resource_group):
     core.log(logger=LOGGER, message=f'VM {vm_name} successfully deleted!')
 
 
+def get_subnet_ids(subscription):
+    cmd = f'az network vnet list --subscription {subscription} --query "[].subnets[].id" -o tsv'
+    return run_win_cmd(cmd)
+
+
 def get_az_resource_ids(vm_name, subscription, resource_group):
     cmd = f'az vm show -g {resource_group} -n {vm_name} --query "[id, networkProfile.networkInterfaces[].id, storageProfile.osDisk.managedDisk.id, storageProfile.dataDisks[].managedDisk.id]" --subscription {subscription} -o tsv'
     return run_win_cmd(cmd)
 
 
-def get_az_subnet_id(subscription, network, subnet_name):
-    cmd = f'az network vnet list --subscription {subscription} --query "[?name==\'{network}\'].subnets[].id" -o tsv'
-    subnet_ids = run_win_cmd(cmd)
-    return next((subnet_id for subnet_id in subnet_ids if subnet_name in subnet_id), [])
-
-
-def get_az_networks(subscription):
-    cmd = f'az network vnet list --subscription {subscription} --query "[].name" -o tsv'
-    return run_win_cmd(cmd)
-
-
-def get_az_subnets(subscription, network):
-    cmd = f'az network vnet list --subscription {subscription} --query "[?name==\'{network}\'].subnets[].name" -o tsv'
-    return run_win_cmd(cmd)
-
-
 def get_vms():
-    subscription = SUBSCRIPTIONS[core.get_value('subscription_vms')]
+    subscription = get_current_subscription_vms()
     resource_group = core.get_value('resource_group_vms')
     cmd = f'az vm list -g {resource_group} --query "[].name" --subscription {subscription} -o tsv'
     return run_win_cmd(cmd)
@@ -138,6 +134,45 @@ def get_az_resource_group(subscription):
     return run_win_cmd(cmd)
 
 
+# ------- DATA -------
+
+def get_net_data():
+    print('Initializing Azure network data...')
+    net_data = {}
+    for sub in SUBSCRIPTIONS:
+        net_data[sub] = {}
+        subnet_ids = get_subnet_ids(sub)
+        print('Done for subscription', sub)
+        for subnet_id in subnet_ids:
+            network, subnet = get_net_sub(subnet_id)
+            if network not in net_data[sub]:
+                net_data[sub][network] = {}
+            net_data[sub][network][subnet] = subnet_id
+
+    return net_data
+
+
+def get_rg_data():
+    print('Initializing Azure resource group data...')
+    return {sub: get_az_resource_group(sub) for sub in SUBSCRIPTIONS}
+
+
+def get_net_data_network(subscription):
+    net_data = list(core.get_data('net_data')[subscription].keys())
+    return net_data
+
+
+def get_net_data_subnet(subscription, network):
+    return list(core.get_data('net_data')[subscription][network].keys())
+
+
+def get_rgs(subscription):
+    return core.get_data('rg_data')[subscription]
+
+
+def get_az_subnet_id(subscription, network, subnet):
+    return core.get_data('net_data')[subscription][network][subnet]
+
 # ------- UI -------
 
 
@@ -145,9 +180,11 @@ def refresh():
     set_state(False)
 
     vms = get_vms()
-    rgs = get_resource_groups_vm()
+    rgs = get_rgs(get_current_subscription_vms())
 
     core.configure_item('resource_group_vms', items=rgs)
+    core.set_value('resource_group_vms', rgs[0])
+
     core.configure_item('vm_combo', items=vms)
     vm_val = vms[0] if vms else ''
     core.set_value('vm_combo', vm_val)
@@ -159,32 +196,19 @@ def refresh_rg(sender, data):
     set_state(False)
     subscription = get_current_subscription()
 
-    rgs = get_resource_groups()
+    rgs = get_rgs(subscription)
     core.configure_item('resource_group', items=rgs)
+    core.set_value('resource_group', rgs[0])
 
     # network
-    networks = get_az_networks(subscription)
+    networks = get_net_data_network(subscription)
 
-    if networks:
-        subnets = get_az_subnets(subscription, networks[0])
-        core.configure_item('network', items=networks)
-        core.set_value('network', networks[0])
-    else:
-        core.configure_item('network', items=[])
-        core.set_value('network', '')
+    subnets = get_net_data_subnet(subscription, networks[0])
+    core.configure_item('network', items=networks)
+    core.set_value('network', networks[0])
 
-        core.configure_item('subnet', items=[])
-        core.set_value('subnet', '')
-
-        set_state(True)
-        return
-
-    if subnets:
-        core.configure_item('subnet', items=subnets)
-        core.set_value('subnet', subnets[0])
-    else:
-        core.configure_item('subnet', items=[])
-        core.set_value('subnet', '')
+    core.configure_item('subnet', items=subnets)
+    core.set_value('subnet', subnets[0])
 
     set_state(True)
 
@@ -231,50 +255,48 @@ def set_state(state=True):
     # VM tab
     core.configure_item('subscription_vms', enabled=state)
     core.configure_item('resource_group_vms', enabled=state)
-    core.configure_item('Refresh', enabled=state)
     core.configure_item('vm_combo', enabled=state)
     if state == False:
         core.configure_item('Delete', enabled=state)
 
 
-def get_resource_groups_vm():
-    subscription = SUBSCRIPTIONS[core.get_value('subscription_vms')]
-    return get_az_resource_group(subscription)
-
-
-def get_resource_groups():
-    subscription = SUBSCRIPTIONS[core.get_value('subscription')]
-    return get_az_resource_group(subscription)
-
-
 def refresh_subnet(sender, data):
     network = core.get_value(sender)
-    subscription = SUBSCRIPTIONS[core.get_value('subscription')]
-    subnets = get_az_subnets(subscription, network)
-    if subnets:
-        core.configure_item('subnet', items=subnets)
-        core.set_value('subnet', subnets[0])
-    else:
-        core.configure_item('subnet', items=[])
-        core.set_value('subnet', '')
+    subscription = get_current_subscription()
+    subnets = get_net_data_subnet(subscription, network)
+
+    core.configure_item('subnet', items=subnets)
+    core.set_value('subnet', subnets[0])
 
 
 def get_current_subscription():
     return SUBSCRIPTIONS[core.get_value('subscription')]
+
+
+def get_current_subscription_vms():
+    return SUBSCRIPTIONS[core.get_value('subscription_vms')]
+
 
 # ------- Main -------
 
 
 def main():
     with simple.window(WINDOW_NAME, **WINDOW_SIZE, no_move=True, no_close=True, no_collapse=False, x_pos=0, y_pos=0, no_resize=True):
+        core.add_data('rg_data', data=get_rg_data())
+        core.add_data('net_data', data=get_net_data())
+
         with simple.tab_bar('tab_bar'):
             with simple.tab('create_tab', label='Create VM'):
+
                 core.add_radio_button('subscription', items=SUBSCRIPTIONS, callback=refresh_rg)
-                core.add_combo('resource_group', items=get_resource_groups(),
-                               label='Resource Group', default_value=RESOURCE_GROUP)
+
+                core.add_combo('resource_group', items=get_rgs(
+                    get_current_subscription()), label='Resource Group')
+
                 core.add_combo('network', label='Network', callback=refresh_subnet,
-                               items=get_az_networks(get_current_subscription()))
+                               items=get_net_data_network(get_current_subscription()))
                 core.add_combo('subnet', label='Subnet')
+
                 core.add_input_text('vm_name', label='VM Name', callback=enable_submit,
                                     no_spaces=True, default_value=generate_vm_name())
                 core.add_slider_int('data_disks', max_value=3, label='Data Disks')
@@ -283,11 +305,12 @@ def main():
 
             with simple.tab('vms_tab', label='VMs'):
                 core.add_radio_button('subscription_vms', items=SUBSCRIPTIONS, callback=refresh)
-                core.add_combo('resource_group_vms', items=get_resource_groups_vm(),
-                               label='Resource Group', default_value=RESOURCE_GROUP)
-                core.add_button(name='Refresh', callback=refresh)
 
-                core.add_combo(name='vm_combo', items=get_vms(), label='VM', callback=enable_delete)
+                core.add_combo('resource_group_vms', items=get_rgs(
+                    get_current_subscription_vms()),
+                    label='Resource Group', callback=refresh)
+
+                core.add_combo(name='vm_combo', label='VM', callback=enable_delete)
 
                 core.add_button(name='Delete', callback=delete_vm_submit,
                                 callback_data=get_data_vm, enabled=False)
