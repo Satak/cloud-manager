@@ -3,10 +3,11 @@ import pyperclip
 
 from configs import MAIN_WINDOW_NAME, MAIN_WINDOW_SIZE, WINDOW_NAME, WINDOW_SIZE, SUBSCRIPTIONS, LOGGER
 
-from azure_functions import get_az_resource_group, get_az_subnet_ids, create_az_vm, get_az_vms, az_vm_action, az_vm_resize, az_vm_delete
+from azure_functions import get_az_resource_group, get_az_subnet_ids, create_az_vm, get_az_vms, az_vm_action, az_vm_resize, az_vm_delete, get_az_vm_details
 from misc_utils import get_net_sub, get_vm_sizes, generate_vm_name
 from models import VirtualMachine
 
+from json import dumps
 
 VMS_TABLE_NAME = "Az VMs"
 
@@ -144,6 +145,7 @@ def set_state(state=True):
 def set_state_popup(state):
     core.configure_item('Cancel', enabled=state)
     core.configure_item('Copy VM ID', enabled=state)
+    core.configure_item('Copy VM Details', enabled=state)
     core.configure_item('Start', enabled=state)
     core.configure_item('Stop', enabled=state)
     core.configure_item('Restart', enabled=state)
@@ -251,10 +253,34 @@ def colorize_button(name, color='red'):
 def copy_vm_id(table_name):
     vm_ids = get_vm_ids(table_name)
     if not vm_ids:
+        print('vm_ids not found...')
+        core.close_popup('VM Action')
         return
+
     pyperclip.copy(' '.join(vm_ids))
-    core.close_popup('VM Action')
+
     print('VM IDs copied', vm_ids)
+    core.close_popup('VM Action')
+
+
+def copy_vm_details(table_name):
+    vm_ids = get_vm_ids(table_name)
+    if not vm_ids:
+        print('vm_ids not found...')
+        core.close_popup('VM Action')
+        return
+
+    vm_details = get_az_vm_details(vm_ids)
+
+    if not vm_details:
+        print('vm_details not found...')
+        core.close_popup('VM Action')
+        return
+
+    pyperclip.copy(dumps(vm_details, indent=2))
+
+    print('VM details copied', vm_ids)
+    core.close_popup('VM Action')
 
 # ------------- TABS -------------
 
@@ -337,6 +363,7 @@ def vms_tab():
         with simple.popup(VMS_TABLE_NAME, 'VM Action', mousebutton=core.mvMouseButton_Right, modal=True):
             core.add_button('Cancel', callback=lambda: core.close_popup('VM Action'))
             core.add_button('Copy VM ID', callback=lambda:  copy_vm_id(VMS_TABLE_NAME))
+            core.add_button('Copy VM Details', callback=lambda:  copy_vm_details(VMS_TABLE_NAME))
 
             core.add_separator()
             core.add_spacing(count=1)

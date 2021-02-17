@@ -88,6 +88,13 @@ def get_az_subnet_ids(subscription):
     return run_cmd(cmd)
 
 
+def get_az_vm_details(vm_ids):
+    ids_str = ' '.join(vm_ids)
+    cmd = f'az vm show -d --ids {ids_str}'
+    print('cmd', cmd)
+    return run_cmd(cmd)
+
+
 def get_az_resource_ids(vm_ids):
     ids_str = ' '.join(vm_ids)
     if len(vm_ids) > 1:
