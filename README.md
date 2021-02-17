@@ -16,7 +16,7 @@ You must install all these prerequisites and authenticate to Azure with az cli b
 - Install `pyperclip` (Python library: <https://github.com/asweigart/pyperclip>)
   - run `pip install pyperclip`
 
-**Before first use, change settings in the `config.py` to fit your Azure environment settings!**
+**Before first use, change settings in the `/cloud_manager/configs.py` to fit your Azure environment settings!**
 
 ## Examples
 
