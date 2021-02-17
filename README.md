@@ -13,11 +13,16 @@ You must install all these prerequisites and authenticate to Azure with az cli b
   - run `az login` to authenticate to your Azure subscription
 - Install `dearpygui` (Python library: <https://github.com/hoffstadt/DearPyGui>)
   - run `pip install dearpygui`
+- Install `pyperclip` (Python library: <https://github.com/asweigart/pyperclip>)
+  - run `pip install pyperclip`
 
 **Before first use, change settings in the `config.py` to fit your Azure environment settings!**
 
 ## Examples
 
 ![cloud manager main](./images/cloud_manager.PNG 'Cloud Manager Main')
+
+![cloud manager vms](./images/cloud_manager_vms.PNG 'Cloud Manager VMs')
+![cloud manager action](./images/cloud_manager_action.PNG 'Cloud Manager Action')
 
 ![cloud manager log](./images/cloud_manager_log.PNG 'Cloud Manager Log')
