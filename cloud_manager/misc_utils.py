@@ -1,6 +1,6 @@
 import subprocess
 from json import loads, load
-from os import path
+from os import get_exec_path, path
 from datetime import datetime
 
 from configs import VM_NAME_PREFIX
@@ -18,10 +18,13 @@ def run_cmd(cmd, as_json=True):
         if not data:
             return
 
-        if not as_json:
-            return [line.decode().strip() for line in data.splitlines() if line.decode().strip()]
+        try:
+            if not as_json:
+                return [line.decode().strip() for line in data.splitlines() if line.decode().strip()]
 
-        return loads(data)
+            return loads(data)
+        except Exception:
+            return
 
 
 def get_net_sub(subnet_id):

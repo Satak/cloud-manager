@@ -14,6 +14,12 @@ def az_vm_resize(size, vm_ids):
     run_cmd(cmd, as_json=False)
 
 
+def delete_az_resources(resource_ids):
+    resource_ids_str = ' '.join(resource_ids)
+    cmd = f'az resource delete --ids {resource_ids_str}'
+    run_cmd(cmd)
+
+
 def az_vm_delete(vm_ids):
 
     resource_ids = get_az_resource_ids(vm_ids)
@@ -57,7 +63,7 @@ def create_az_vm(vm_name, subscription, resource_group, subnet_id, data_disks=0)
         'image': 'win2019datacenter',
         'admin-username': ADMIN_USERNAME,
         'admin-password': ADMIN_PASSWORD,
-        'subscription': subscription,
+        'subscription': f'"{subscription}"',
         'public-ip-address': '""',
         'nsg': '""',
         'tags': generate_vm_tag(vm_name),
@@ -81,7 +87,7 @@ def create_az_vm(vm_name, subscription, resource_group, subnet_id, data_disks=0)
 
 
 def get_az_subnet_ids(subscription):
-    cmd = f'az network vnet list --query "[].subnets[].id" --subscription {subscription}'
+    cmd = f'az network vnet list --query "[].subnets[].id" --subscription "{subscription}"'
     return run_cmd(cmd)
 
 
@@ -102,10 +108,56 @@ def get_az_resource_ids(vm_ids):
         return run_cmd(cmd, as_json=False)
 
 
+def get_az_ip_config_name(nic_name, resource_group, subscription):
+    cmd = f'az network nic ip-config list --nic-name {nic_name} --resource-group {resource_group} --subscription "{subscription}" --query "[].name" -o tsv'
+    data = run_cmd(cmd, as_json=False)
+    if not data or len(data) != 1:
+        return
+    return data[0]
+
+
+def create_az_public_ip(name, resource_group, subscription):
+    cmd = f'az network public-ip create --name {name} --allocation-method Static --resource-group {resource_group} --subscription "{subscription}"'
+    run_cmd(cmd)
+
+
+def associate_az_public_ip(ip_config_name, nic_name, public_ip_name, resource_group, subscription):
+    cmd = f'az network nic ip-config update --name {ip_config_name} --nic-name {nic_name} --public-ip-address {public_ip_name} --resource-group {resource_group} --subscription "{subscription}"'
+    run_cmd(cmd)
+
+
+def get_az_public_ip_address_id(ip_config_name, nic_name, resource_group, subscription):
+    cmd = f'az network nic ip-config show --name {ip_config_name} --nic-name {nic_name} --resource-group {resource_group} --query publicIpAddress.id --subscription "{subscription}" -o tsv'
+    data = run_cmd(cmd, as_json=False)
+    if not data or len(data) != 1:
+        return
+    return data[0]
+
+
+def dissociate_az_public_ip(ip_config_name, nic_name, resource_group, subscription):
+    cmd = f'az network nic ip-config update --name {ip_config_name} --nic-name {nic_name} --remove publicIpAddress --resource-group {resource_group} --subscription "{subscription}"'
+    run_cmd(cmd)
+
+
 def get_az_vms(subscription: str) -> list[VirtualMachine]:
     '''Get Azure VMs from subscription'''
 
-    cmd = f'az vm list -d --query "[].{{id: id, name: name, state: powerState, rg: resourceGroup, size: hardwareProfile.vmSize, publicIps: publicIps, privateIps: privateIps, os: storageProfile.imageReference.offer, osVer: storageProfile.imageReference.sku}}" --subscription {subscription}'
+    query_props = {
+        'id': 'id',
+        'name': 'name',
+        'state': 'powerState',
+        'rg': 'resourceGroup',
+        'size': 'hardwareProfile.vmSize',
+        'publicIps': 'publicIps',
+        'privateIps': 'privateIps',
+        'os': 'storageProfile.imageReference.offer',
+        'osVer': 'storageProfile.imageReference.sku',
+        'nics': 'networkProfile.networkInterfaces[].id',
+    }
+
+    query = ', '.join(f'{key}: {val}' for key, val in query_props.items() if val)
+
+    cmd = f'az vm list -d --query "[].{{{query}}}" --subscription "{subscription}"'
     vm_data = run_cmd(cmd)
     vm_sizes = core.get_data('vm_size_data')
 
@@ -121,6 +173,7 @@ def get_az_vms(subscription: str) -> list[VirtualMachine]:
             'cpu': size_obj['cpu'],
             'mem': size_obj['mem'],
             'ips': vm_obj['privateIps'] if not vm_obj['publicIps'] else [vm_obj['privateIps'], vm_obj['publicIps']],
+            'nics': vm_obj['nics'],
             'os': f'{vm_obj["os"]} - {vm_obj["osVer"]}'
         }
 
@@ -129,10 +182,10 @@ def get_az_vms(subscription: str) -> list[VirtualMachine]:
 
 
 def get_az_vms_from_rg(subscription, resource_group):
-    cmd = f'az vm list -g {resource_group} --query "[].name" --subscription {subscription}'
+    cmd = f'az vm list -g {resource_group} --query "[].name" --subscription "{subscription}"'
     return run_cmd(cmd)
 
 
 def get_az_resource_group(subscription):
-    cmd = f'az group list --query "[].name" --subscription {subscription}'
+    cmd = f'az group list --query "[].name" --subscription "{subscription}"'
     return run_cmd(cmd)

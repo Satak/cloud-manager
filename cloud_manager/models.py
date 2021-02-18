@@ -12,6 +12,7 @@ class VirtualMachine:
     cpu: int
     mem: int
     ips: str
+    nics: list[str]
     os: str
 
     @property

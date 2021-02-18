@@ -6,13 +6,13 @@ ADMIN_PASSWORD = 'soMeCompLexPassrd9!'  # CHANGE THIS!
 
 
 # Azure subscriptions
-SUBSCRIPTIONS = ['FCSM-Demo', 'FCSM-Dev']  # CHANGE THIS!
+SUBSCRIPTIONS = ['FCSM-Demo', 'FCSM-Dev', 'FCSM Infrastructure']  # CHANGE THIS!
 
 # vm name prefix. This is part of the default VM name: <prefix-vm-date> e.g. `ab-vm-163835`
 VM_NAME_PREFIX = 'sk'
 
 MAIN_WINDOW_NAME = 'Cloud Manager'
-MAIN_WINDOW_SIZE = {'width': 900, 'height': 400}
+MAIN_WINDOW_SIZE = {'width': 900, 'height': 600}
 
 WINDOW_NAME = 'Azure'
-WINDOW_SIZE = {'width': 884, 'height': 361}
+WINDOW_SIZE = {'width': 884, 'height': 561}

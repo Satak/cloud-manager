@@ -5,7 +5,23 @@ import pyperclip
 
 from configs import MAIN_WINDOW_NAME, MAIN_WINDOW_SIZE, WINDOW_NAME, WINDOW_SIZE, SUBSCRIPTIONS, LOGGER
 
-from azure_functions import get_az_resource_group, get_az_subnet_ids, create_az_vm, get_az_vms, az_vm_action, az_vm_resize, az_vm_delete, get_az_vm_details
+from azure_functions import (
+    get_az_resource_group,
+    get_az_subnet_ids,
+    create_az_vm,
+    get_az_vms,
+    az_vm_action,
+    az_vm_resize,
+    az_vm_delete,
+    get_az_vm_details,
+    get_az_ip_config_name,
+    create_az_public_ip,
+    associate_az_public_ip,
+    dissociate_az_public_ip,
+    get_az_public_ip_address_id,
+    delete_az_resources
+)
+
 from misc_utils import get_net_sub, get_vm_sizes, generate_vm_name
 from models import VirtualMachine
 
@@ -152,6 +168,8 @@ def set_state_popup(state):
     core.configure_item('Stop', enabled=state)
     core.configure_item('Restart', enabled=state)
     core.configure_item('Deallocate', enabled=state)
+    core.configure_item('Associate Public IP', enabled=state)
+    core.configure_item('Dissociate Public IP', enabled=state)
     core.configure_item('Resize Small', enabled=state)
     core.configure_item('Resize Large', enabled=state)
     core.configure_item('Delete', enabled=state)
@@ -182,14 +200,18 @@ def get_selected_vms(table_name, selections):
     return vms_selected
 
 
-def find_vm_ids(vm_obj, vms_data, only_id=True):
-    if not only_id:
+def find_vms(vm_obj, vms_data, data_type='id'):
+    if data_type == 'id':
+        return next((vm.id for vm in vms_data if vm.name == vm_obj['name'] and vm.rg == vm_obj['resource_group']), None)
+
+    if data_type == 'dict':
         return next((vm.__dict__ for vm in vms_data if vm.name == vm_obj['name'] and vm.rg == vm_obj['resource_group']), None)
 
-    return next((vm.id for vm in vms_data if vm.name == vm_obj['name'] and vm.rg == vm_obj['resource_group']), None)
+    if data_type == 'object':
+        return next((vm for vm in vms_data if vm.name == vm_obj['name'] and vm.rg == vm_obj['resource_group']), None)
 
 
-def get_vm_ids(table_name, only_id=True):
+def get_vm_ids(table_name, data_type='id'):
     selections = core.get_table_selections(table_name)
 
     if not selections:
@@ -200,7 +222,112 @@ def get_vm_ids(table_name, only_id=True):
     selected_vms = get_selected_vms(table_name, selections)
     vms_data = core.get_data('vms_data')
 
-    return [find_vm_ids(vm_obj, vms_data, only_id) for vm_obj in selected_vms.values()]
+    return [find_vms(vm_obj, vms_data, data_type) for vm_obj in selected_vms.values()]
+
+
+def associate_public_ip(table_name):
+    set_state_popup(False)
+    vm_objects = get_vm_ids(table_name, data_type='object')
+    if not vm_objects:
+        print('vm_objects not found...')
+        set_state_popup(True)
+        core.close_popup('VM Action')
+        return
+    subscription = get_current_subscription_vms()
+
+    for vm in vm_objects:
+        print(f'[{vm.name}] Associate public IP action started')
+
+        # single NIC support only!
+        nic_name = vm.nics[0].split('/')[-1]
+        public_ip_name = f'{vm.name}-{vm.rg}-publicIp'
+
+        ip_config_name = get_az_ip_config_name(
+            nic_name=nic_name,
+            resource_group=vm.rg,
+            subscription=subscription
+        )
+
+        print(f'[{vm.name}] IP Config Name found: {ip_config_name} from NIC: {nic_name}, creating Public IP: {public_ip_name}...')
+
+        create_az_public_ip(
+            name=public_ip_name,
+            resource_group=vm.rg,
+            subscription=subscription
+        )
+
+        print(f'[{vm.name}] Public IP created: {public_ip_name}')
+
+        print(f'[{vm.name}] Associating Public IP to NIC: {nic_name}...')
+        associate_az_public_ip(
+            ip_config_name=ip_config_name,
+            nic_name=nic_name,
+            public_ip_name=public_ip_name,
+            resource_group=vm.rg,
+            subscription=subscription
+        )
+
+        print(f'[{vm.name}] Associate public IP OK: {public_ip_name}')
+
+    set_state_popup(True)
+    core.close_popup('VM Action')
+
+
+def dissociate_public_ip(table_name):
+    set_state_popup(False)
+    vm_objects = get_vm_ids(table_name, data_type='object')
+    if not vm_objects:
+        print('vm_objects not found...')
+        set_state_popup(True)
+        core.close_popup('VM Action')
+        return
+    subscription = get_current_subscription_vms()
+
+    for vm in vm_objects:
+        print(f'[{vm.name}] Dissociating public IP action started')
+
+        # single NIC support only!
+        nic_name = vm.nics[0].split('/')[-1]
+
+        ip_config_name = get_az_ip_config_name(
+            nic_name=nic_name,
+            resource_group=vm.rg,
+            subscription=subscription
+        )
+
+        print(f'[{vm.name}] IP Config Name found: {ip_config_name} from NIC: {nic_name}')
+
+        public_ip_id = get_az_public_ip_address_id(
+            ip_config_name=ip_config_name,
+            nic_name=nic_name,
+            resource_group=vm.rg,
+            subscription=subscription
+        )
+
+        if public_ip_id:
+            public_ip_name = public_ip_id.split('/')[-1]
+            print(f'[{vm.name}] Public IP found: {public_ip_name}')
+
+            print(f'[{vm.name}] Dissociating Public IP from NIC: {nic_name}...')
+
+            dissociate_az_public_ip(
+                ip_config_name=ip_config_name,
+                nic_name=nic_name,
+                resource_group=vm.rg,
+                subscription=subscription
+            )
+
+            print(f'[{vm.name}] Dissociating public IP OK, deleting public IP: {public_ip_name}...')
+
+            delete_az_resources([public_ip_id])
+
+            print(f'[{vm.name}] Public IP deleted: {public_ip_id}')
+
+        else:
+            print(f'[{vm.name}] Public IP not found from NIC: {nic_name}')
+
+    set_state_popup(True)
+    core.close_popup('VM Action')
 
 
 def vm_action(action, table_name):
@@ -215,9 +342,9 @@ def vm_action(action, table_name):
         'stop': lambda: az_vm_action(action, vm_ids),
         'restart': lambda: az_vm_action(action, vm_ids),
         'deallocate': lambda: az_vm_action(action, vm_ids),
-        'delete': lambda: az_vm_delete(vm_ids),
         'resize_small': lambda: az_vm_resize('Standard_B1s', vm_ids),
         'resize_large': lambda: az_vm_resize('Standard_B2s', vm_ids),
+        'delete': lambda: az_vm_delete(vm_ids),
     }
     if vm_ids:
         action_map[action]()
@@ -296,7 +423,7 @@ def copy_vm_details(table_name):
 
 def copy_vm_info(table_name):
     set_state_popup(False)
-    vm_objects = get_vm_ids(table_name, only_id=False)
+    vm_objects = get_vm_ids(table_name, data_type='dict')
     if not vm_objects:
         print('vm_objects not found...')
         set_state_popup(True)
@@ -382,7 +509,8 @@ def vms_tab():
 
         core.add_data('vms_data', data=get_az_vms(get_current_subscription_vms()))
 
-        core.add_table(VMS_TABLE_NAME, headers=VirtualMachine.get_headers(), width=884)
+        core.add_table(VMS_TABLE_NAME, headers=VirtualMachine.get_headers(),
+                       width=WINDOW_SIZE['width'], height=500)
 
         for vm in core.get_data('vms_data'):
             core.add_row(VMS_TABLE_NAME, vm.get_values())
@@ -400,6 +528,15 @@ def vms_tab():
             core.add_button('Stop', callback=lambda: vm_action('stop', VMS_TABLE_NAME))
             core.add_button('Restart', callback=lambda: vm_action('restart', VMS_TABLE_NAME))
             core.add_button('Deallocate', callback=lambda: vm_action('deallocate', VMS_TABLE_NAME))
+
+            core.add_separator()
+            core.add_spacing(count=1)
+
+            core.add_button('Associate Public IP',
+                            callback=lambda: associate_public_ip(VMS_TABLE_NAME))
+
+            core.add_button('Dissociate Public IP',
+                            callback=lambda: dissociate_public_ip(VMS_TABLE_NAME))
 
             core.add_separator()
             core.add_spacing(count=1)
