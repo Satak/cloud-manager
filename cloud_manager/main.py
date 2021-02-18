@@ -147,6 +147,7 @@ def set_state_popup(state):
     core.configure_item('Cancel', enabled=state)
     core.configure_item('Copy VM ID', enabled=state)
     core.configure_item('Copy VM Details', enabled=state)
+    core.configure_item('Copy VM Info', enabled=state)
     core.configure_item('Start', enabled=state)
     core.configure_item('Stop', enabled=state)
     core.configure_item('Restart', enabled=state)
@@ -181,11 +182,14 @@ def get_selected_vms(table_name, selections):
     return vms_selected
 
 
-def find_vm_ids(vm_obj, vms_data):
+def find_vm_ids(vm_obj, vms_data, only_id=True):
+    if not only_id:
+        return next((vm.__dict__ for vm in vms_data if vm.name == vm_obj['name'] and vm.rg == vm_obj['resource_group']), None)
+
     return next((vm.id for vm in vms_data if vm.name == vm_obj['name'] and vm.rg == vm_obj['resource_group']), None)
 
 
-def get_vm_ids(table_name):
+def get_vm_ids(table_name, only_id=True):
     selections = core.get_table_selections(table_name)
 
     if not selections:
@@ -196,7 +200,7 @@ def get_vm_ids(table_name):
     selected_vms = get_selected_vms(table_name, selections)
     vms_data = core.get_data('vms_data')
 
-    return [find_vm_ids(vm_obj, vms_data) for vm_obj in selected_vms.values()]
+    return [find_vm_ids(vm_obj, vms_data, only_id) for vm_obj in selected_vms.values()]
 
 
 def vm_action(action, table_name):
@@ -289,6 +293,22 @@ def copy_vm_details(table_name):
     set_state_popup(True)
     core.close_popup('VM Action')
 
+
+def copy_vm_info(table_name):
+    set_state_popup(False)
+    vm_objects = get_vm_ids(table_name, only_id=False)
+    if not vm_objects:
+        print('vm_objects not found...')
+        set_state_popup(True)
+        core.close_popup('VM Action')
+        return
+
+    pyperclip.copy(dumps(vm_objects, indent=2))
+
+    print('VM basic info copied')
+    set_state_popup(True)
+    core.close_popup('VM Action')
+
 # ------------- TABS -------------
 
 
@@ -371,6 +391,7 @@ def vms_tab():
             core.add_button('Cancel', callback=lambda: core.close_popup('VM Action'))
             core.add_button('Copy VM ID', callback=lambda:  copy_vm_id(VMS_TABLE_NAME))
             core.add_button('Copy VM Details', callback=lambda:  copy_vm_details(VMS_TABLE_NAME))
+            core.add_button('Copy VM Info', callback=lambda:  copy_vm_info(VMS_TABLE_NAME))
 
             core.add_separator()
             core.add_spacing(count=1)
