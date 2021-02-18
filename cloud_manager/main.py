@@ -1,3 +1,5 @@
+from json import dumps
+
 from dearpygui import core, simple
 import pyperclip
 
@@ -7,7 +9,6 @@ from azure_functions import get_az_resource_group, get_az_subnet_ids, create_az_
 from misc_utils import get_net_sub, get_vm_sizes, generate_vm_name
 from models import VirtualMachine
 
-from json import dumps
 
 VMS_TABLE_NAME = "Az VMs"
 
@@ -149,6 +150,7 @@ def set_state_popup(state):
     core.configure_item('Start', enabled=state)
     core.configure_item('Stop', enabled=state)
     core.configure_item('Restart', enabled=state)
+    core.configure_item('Deallocate', enabled=state)
     core.configure_item('Resize Small', enabled=state)
     core.configure_item('Resize Large', enabled=state)
     core.configure_item('Delete', enabled=state)
@@ -208,6 +210,7 @@ def vm_action(action, table_name):
         'start': lambda: az_vm_action(action, vm_ids),
         'stop': lambda: az_vm_action(action, vm_ids),
         'restart': lambda: az_vm_action(action, vm_ids),
+        'deallocate': lambda: az_vm_action(action, vm_ids),
         'delete': lambda: az_vm_delete(vm_ids),
         'resize_small': lambda: az_vm_resize('Standard_B1s', vm_ids),
         'resize_large': lambda: az_vm_resize('Standard_B2s', vm_ids),
@@ -371,6 +374,7 @@ def vms_tab():
             core.add_button('Start', callback=lambda: vm_action('start', VMS_TABLE_NAME))
             core.add_button('Stop', callback=lambda: vm_action('stop', VMS_TABLE_NAME))
             core.add_button('Restart', callback=lambda: vm_action('restart', VMS_TABLE_NAME))
+            core.add_button('Deallocate', callback=lambda: vm_action('deallocate', VMS_TABLE_NAME))
 
             core.add_separator()
             core.add_spacing(count=1)

@@ -2,23 +2,26 @@ import subprocess
 from json import loads, load
 from os import path
 from datetime import datetime
+
 from configs import VM_NAME_PREFIX
 
 
 def run_cmd(cmd, as_json=True):
-    process = subprocess.Popen(cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-    process.wait()
-    output, err = process.communicate()
+    with subprocess.Popen(cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE) as proc:
+        data = proc.stdout.read()
+        err = proc.stderr.read()
 
-    if process.returncode != 0:
-        print(f'ERROR while running command: {err}')
-        return
+        if not data and err:
+            print('run_cmd Error: ', err.decode())
+            return
 
-    # Deserialize json str to a Python object
-    if not as_json:
-        return [line.decode().strip() for line in output.splitlines() if line.decode().strip()]
+        if not data:
+            return
 
-    return loads(output)
+        if not as_json:
+            return [line.decode().strip() for line in data.splitlines() if line.decode().strip()]
+
+        return loads(data)
 
 
 def get_net_sub(subnet_id):

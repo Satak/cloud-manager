@@ -4,10 +4,7 @@ from dearpygui import core
 
 from configs import LOGGER, ADMIN_USERNAME, ADMIN_PASSWORD
 from models import VirtualMachine
-
 from misc_utils import generate_vm_tag, run_cmd, print_resources
-
-from pprint import pprint
 
 
 def az_vm_resize(size, vm_ids):
@@ -91,8 +88,8 @@ def get_az_subnet_ids(subscription):
 def get_az_vm_details(vm_ids):
     ids_str = ' '.join(vm_ids)
     cmd = f'az vm show -d --ids {ids_str}'
-    print('cmd', cmd)
-    return run_cmd(cmd)
+    data = run_cmd(cmd)
+    return data
 
 
 def get_az_resource_ids(vm_ids):
