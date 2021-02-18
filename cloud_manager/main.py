@@ -267,9 +267,11 @@ def copy_vm_id(table_name):
 
 
 def copy_vm_details(table_name):
+    set_state_popup(False)
     vm_ids = get_vm_ids(table_name)
     if not vm_ids:
         print('vm_ids not found...')
+        set_state_popup(True)
         core.close_popup('VM Action')
         return
 
@@ -277,12 +279,14 @@ def copy_vm_details(table_name):
 
     if not vm_details:
         print('vm_details not found...')
+        set_state_popup(True)
         core.close_popup('VM Action')
         return
 
     pyperclip.copy(dumps(vm_details, indent=2))
 
     print('VM details copied', vm_ids)
+    set_state_popup(True)
     core.close_popup('VM Action')
 
 # ------------- TABS -------------

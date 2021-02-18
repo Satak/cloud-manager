@@ -9,10 +9,10 @@ class VirtualMachine:
     state: str
     rg: str
     size: str
-    publicIps: str
-    os: str
     cpu: int
     mem: int
+    ips: str
+    os: str
 
     @property
     def simple_state(self):
@@ -33,7 +33,7 @@ class VirtualMachine:
             self.cpu,
             self.mem,
             self.size,
-            self.publicIps,
+            self.ips,
             self.os
         ]
 
@@ -46,6 +46,6 @@ class VirtualMachine:
             'CPU',
             'Memory GB',
             'Size',
-            'PublicIp',
+            'IP Address',
             'OS'
         ]

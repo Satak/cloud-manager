@@ -105,11 +105,27 @@ def get_az_resource_ids(vm_ids):
 def get_az_vms(subscription: str) -> list[VirtualMachine]:
     '''Get Azure VMs from subscription'''
 
-    cmd = f'az vm list -d --query "[].{{id: id, name: name, state: powerState, rg: resourceGroup, size: hardwareProfile.vmSize, publicIps: publicIps, os: storageProfile.imageReference.offer}}" --subscription {subscription}'
+    cmd = f'az vm list -d --query "[].{{id: id, name: name, state: powerState, rg: resourceGroup, size: hardwareProfile.vmSize, publicIps: publicIps, privateIps: privateIps, os: storageProfile.imageReference.offer, osVer: storageProfile.imageReference.sku}}" --subscription {subscription}'
     vm_data = run_cmd(cmd)
     vm_sizes = core.get_data('vm_size_data')
 
-    return [VirtualMachine(**vm, **vm_sizes[vm['size']]) for vm in vm_data]
+    def object_maker(vm_obj):
+        size_obj = vm_sizes[vm_obj['size']]
+
+        return {
+            'id': vm_obj['id'],
+            'name': vm_obj['name'],
+            'state': vm_obj['state'],
+            'rg': vm_obj['rg'],
+            'size': vm_obj['size'],
+            'cpu': size_obj['cpu'],
+            'mem': size_obj['mem'],
+            'ips': vm_obj['privateIps'] if not vm_obj['publicIps'] else [vm_obj['privateIps'], vm_obj['publicIps']],
+            'os': f'{vm_obj["os"]} - {vm_obj["osVer"]}'
+        }
+
+    vm_data_final = map(object_maker, vm_data)
+    return [VirtualMachine(**vm) for vm in vm_data_final]
 
 
 def get_az_vms_from_rg(subscription, resource_group):
