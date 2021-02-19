@@ -8,7 +8,7 @@ You must install all these prerequisites and authenticate to Azure with az cli b
 
 - Windows only (tested with **Windows 10**)
 - Azure cloud subscription
-- Install Python (tested with **3.8**)
+- Install Python **3.9**
 - Install Azure CLI (<https://docs.microsoft.com/en-us/cli/azure/install-azure-cli-windows?tabs=azure-cli>)
   - run `az login` to authenticate to your Azure subscription
 - Install `dearpygui` (Python library: <https://github.com/hoffstadt/DearPyGui>)
@@ -17,6 +17,12 @@ You must install all these prerequisites and authenticate to Azure with az cli b
   - run `pip install pyperclip`
 
 **Before first use, change settings in the `/cloud_manager/configs.py` to fit your Azure environment settings!**
+
+## Start
+
+`python .\cloud_manager\main.py`
+
+Launch takes around 20-30 seconds.
 
 ## Examples
 
