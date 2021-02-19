@@ -11,7 +11,6 @@ from configs import (
     MAIN_WINDOW_SIZE,
     WINDOW_NAME,
     WINDOW_SIZE,
-    SUBSCRIPTIONS,
     LOGGER,
     VM_SIZES
 )
@@ -31,7 +30,8 @@ from azure_functions import (
     dissociate_az_public_ip,
     get_az_public_ip_address_id,
     delete_az_resources,
-    get_az_nsg
+    get_az_nsg,
+    get_az_subscriptions
 )
 
 from misc_utils import (
@@ -66,15 +66,17 @@ core.set_main_window_resizable(False)
 
 def get_nsg_data():
     print('Initializing Azure nsg data...')
-    return {sub: get_az_nsg(sub) for sub in SUBSCRIPTIONS}
+    return {sub: get_az_nsg(sub) for sub in core.get_data('subscriptions')}
 
 
 def get_net_data():
     print('Initializing Azure network data...')
     net_data = {}
-    for sub in SUBSCRIPTIONS:
+    for sub in core.get_data('subscriptions'):
         net_data[sub] = {}
         subnet_ids = get_az_subnet_ids(sub)
+        if not subnet_ids:
+            continue
         print('Done for subscription', sub)
         for subnet_id in subnet_ids:
             network, subnet = get_net_sub(subnet_id)
@@ -87,7 +89,7 @@ def get_net_data():
 
 def get_rg_data():
     print('Initializing Azure resource group data...')
-    return {sub: get_az_resource_group(sub) for sub in SUBSCRIPTIONS}
+    return {sub: get_az_resource_group(sub) for sub in core.get_data('subscriptions')}
 
 
 def create_vm_action(sender, data):
@@ -166,7 +168,7 @@ def associate_public_ip(table_name):
         set_state_popup(True)
         core.close_popup('VM Action')
         return
-    subscription = get_current_subscription_vms()
+    subscription = get_current_subscription_vms(core.get_data('subscriptions'))
 
     for vm in vm_objects:
         print(f'[{vm.name}] Associate public IP action started')
@@ -214,7 +216,7 @@ def dissociate_public_ip(table_name):
         set_state_popup(True)
         core.close_popup('VM Action')
         return
-    subscription = get_current_subscription_vms()
+    subscription = get_current_subscription_vms(core.get_data('subscriptions'))
 
     for vm in vm_objects:
         print(f'[{vm.name}] Dissociating public IP action started')
@@ -304,7 +306,7 @@ def vm_action(action, table_name):
 def refresh_vms():
     set_state(state=False)
     core.clear_table(VMS_TABLE_NAME)
-    vms = get_az_vms(get_current_subscription_vms())
+    vms = get_az_vms(get_current_subscription_vms(core.get_data('subscriptions')))
     core.add_data('vms_data', vms)
 
     for vm in core.get_data('vms_data'):
@@ -373,7 +375,7 @@ def provision_tab():
 
         core.add_radio_button(
             'subscription',
-            items=SUBSCRIPTIONS,
+            items=core.get_data('subscriptions'),
             callback=refresh_provision_items
         )
 
@@ -381,7 +383,7 @@ def provision_tab():
         core.add_separator()
         core.add_spacing(count=2)
 
-        rgs = get_data_resource_group(get_current_subscription())
+        rgs = get_data_resource_group(get_current_subscription(core.get_data('subscriptions')))
         core.add_combo(
             'resource_group',
             items=rgs,
@@ -394,7 +396,7 @@ def provision_tab():
             'network',
             label='Network',
             callback=refresh_subnet,
-            items=get_net_data_network(get_current_subscription())
+            items=get_net_data_network(get_current_subscription(core.get_data('subscriptions')))
         )
 
         core.add_combo(
@@ -402,7 +404,7 @@ def provision_tab():
             label='Subnet'
         )
 
-        nsg = get_data_nsg_names(get_current_subscription())
+        nsg = get_data_nsg_names(get_current_subscription(core.get_data('subscriptions')))
         core.add_combo(
             'nsg_group',
             items=nsg,
@@ -461,7 +463,7 @@ def vms_tab():
 
         core.add_radio_button(
             'subscription_vms',
-            items=SUBSCRIPTIONS,
+            items=core.get_data('subscriptions'),
             callback=refresh_vms
         )
 
@@ -470,7 +472,8 @@ def vms_tab():
             callback=refresh_vms
         )
 
-        core.add_data('vms_data', data=get_az_vms(get_current_subscription_vms()))
+        core.add_data('vms_data', data=get_az_vms(
+            get_current_subscription_vms(core.get_data('subscriptions'))))
 
         core.add_table(VMS_TABLE_NAME, headers=VirtualMachine.get_headers(),
                        width=WINDOW_SIZE['width'], height=500)
@@ -535,6 +538,7 @@ def log_tab():
 
 def main():
     with simple.window(WINDOW_NAME, **WINDOW_SIZE, no_move=True, no_close=True, no_collapse=False, x_pos=0, y_pos=0, no_resize=True):
+        core.add_data('subscriptions', data=get_az_subscriptions())
         core.add_data('vm_size_data', data=get_vm_sizes())
         core.add_data('rg_data', data=get_rg_data())
         core.add_data('net_data', data=get_net_data())

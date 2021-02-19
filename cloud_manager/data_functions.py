@@ -1,20 +1,18 @@
 from dearpygui import core
 
-from configs import SUBSCRIPTIONS
+
+def get_current_subscription(subscriptions):
+    return subscriptions[core.get_value('subscription')]
 
 
-def get_current_subscription():
-    return SUBSCRIPTIONS[core.get_value('subscription')]
-
-
-def get_current_subscription_vms():
-    return SUBSCRIPTIONS[core.get_value('subscription_vms')]
+def get_current_subscription_vms(subscriptions):
+    return subscriptions[core.get_value('subscription_vms')]
 
 
 def get_provision_data():
     return {
         'vm_name': core.get_value('vm_name'),
-        'subscription': get_current_subscription(),
+        'subscription': get_current_subscription(core.get_data('subscriptions')),
         'resource_group': core.get_value('resource_group'),
         'network': core.get_value('network'),
         'subnet': core.get_value('subnet'),
@@ -106,7 +104,7 @@ def set_state_popup(state):
 
 def refresh_subnet(sender, data):
     network = core.get_value(sender)
-    subscription = get_current_subscription()
+    subscription = get_current_subscription(core.get_data('subscriptions'))
     subnets = get_net_data_subnet(subscription, network)
 
     core.configure_item('subnet', items=subnets)
@@ -124,7 +122,7 @@ def colorize_button(name, color='red'):
 
 def refresh_provision_items(sender, data):
     set_state(False)
-    subscription = get_current_subscription()
+    subscription = get_current_subscription(core.get_data('subscriptions'))
 
     # resource group
     rgs = get_data_resource_group(subscription)

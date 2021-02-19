@@ -7,6 +7,12 @@ from models import VirtualMachine
 from misc_utils import generate_vm_tag, run_cmd, print_resources
 
 
+def get_az_subscriptions():
+    cmd = 'az account list --query "[].name" -o tsv'
+    all_subscriptions = run_cmd(cmd, as_json=False)
+    return [sub for sub in all_subscriptions if get_az_resource_group(sub)]
+
+
 def az_vm_resize(size, vm_ids):
     ids_str = ' '.join(vm_ids)
     cmd = f'az vm resize --ids {ids_str} --size {size} --no-wait'
