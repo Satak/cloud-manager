@@ -1,9 +1,20 @@
 from json import dumps
+import string
 
 from dearpygui import core, simple
 import pyperclip
 
-from configs import MAIN_WINDOW_NAME, MAIN_WINDOW_SIZE, WINDOW_NAME, WINDOW_SIZE, SUBSCRIPTIONS, LOGGER
+from models import VirtualMachine
+
+from configs import (
+    MAIN_WINDOW_NAME,
+    MAIN_WINDOW_SIZE,
+    WINDOW_NAME,
+    WINDOW_SIZE,
+    SUBSCRIPTIONS,
+    LOGGER,
+    VM_SIZES
+)
 
 from azure_functions import (
     get_az_resource_group,
@@ -19,12 +30,32 @@ from azure_functions import (
     associate_az_public_ip,
     dissociate_az_public_ip,
     get_az_public_ip_address_id,
-    delete_az_resources
+    delete_az_resources,
+    get_az_nsg
 )
 
-from misc_utils import get_net_sub, get_vm_sizes, generate_vm_name
-from models import VirtualMachine
+from misc_utils import (
+    get_net_sub,
+    get_vm_sizes,
+    generate_vm_name
+)
 
+from data_functions import (
+    get_current_subscription,
+    get_current_subscription_vms,
+    get_provision_data,
+    get_net_data_network,
+    get_data_resource_group,
+    get_data_nsg_names,
+    get_data_nsg_id,
+    get_data_subnet_id,
+    enable_submit,
+    set_state,
+    set_state_popup,
+    colorize_button,
+    refresh_subnet,
+    refresh_provision_items
+)
 
 VMS_TABLE_NAME = "Az VMs"
 
@@ -33,23 +64,9 @@ core.set_main_window_size(**MAIN_WINDOW_SIZE)
 core.set_main_window_resizable(False)
 
 
-def get_current_subscription():
-    return SUBSCRIPTIONS[core.get_value('subscription')]
-
-
-def get_current_subscription_vms():
-    return SUBSCRIPTIONS[core.get_value('subscription_vms')]
-
-
-def get_provision_data():
-    return {
-        'vm_name': core.get_value('vm_name'),
-        'subscription': get_current_subscription(),
-        'resource_group': core.get_value('resource_group'),
-        'network': core.get_value('network'),
-        'subnet': core.get_value('subnet'),
-        'data_disks': core.get_value('data_disks')
-    }
+def get_nsg_data():
+    print('Initializing Azure nsg data...')
+    return {sub: get_az_nsg(sub) for sub in SUBSCRIPTIONS}
 
 
 def get_net_data():
@@ -73,60 +90,24 @@ def get_rg_data():
     return {sub: get_az_resource_group(sub) for sub in SUBSCRIPTIONS}
 
 
-def get_net_data_network(subscription):
-    net_data = list(core.get_data('net_data')[subscription].keys())
-    return net_data
-
-
-def get_net_data_subnet(subscription, network):
-    return list(core.get_data('net_data')[subscription][network].keys())
-
-
-def get_rgs(subscription):
-    return core.get_data('rg_data')[subscription]
-
-
-def get_az_subnet_id(subscription, network, subnet):
-    net_data = core.get_data('net_data')[subscription]
-
-    if not network or not subnet or network not in net_data or subnet not in net_data[network][subnet]:
-        print('subnet id not found from net data')
-        return
-
-    return core.get_data('net_data')[subscription][network][subnet]
-
-
-def refresh_rg(sender, data):
-    set_state(False)
-    subscription = get_current_subscription()
-
-    rgs = get_rgs(subscription)
-    core.configure_item('resource_group', items=rgs)
-    core.set_value('resource_group', rgs[0])
-
-    # network
-    networks = get_net_data_network(subscription)
-
-    subnets = get_net_data_subnet(subscription, networks[0])
-    core.configure_item('network', items=networks)
-    core.set_value('network', networks[0])
-
-    core.configure_item('subnet', items=subnets)
-    core.set_value('subnet', subnets[0])
-
-    set_state(True)
-
-
-def create_vm_submit(sender, data):
+def create_vm_action(sender, data):
     set_state(False)
 
-    subnet_id = get_az_subnet_id(data['subscription'], data['network'], data['subnet'])
+    subscription = data['subscription']
+    subnet_id = get_data_subnet_id(subscription, data['network'], data['subnet'])
+    size = next(
+        (size for size_name, size in VM_SIZES.items() if data['size'].lower() == size_name.lower()), 'Standard_B1ms')
+    nsg = get_data_nsg_id(subscription, data['nsg'])
 
     vm_props = {
         'vm_name': data['vm_name'],
-        'subscription': data['subscription'],
+        'subscription': subscription,
         'resource_group': data['resource_group'],
         'subnet_id': subnet_id,
+        'image': 'win2019datacenter',
+        'size': size,
+        'nsg': nsg,
+        'public_ip': data['public_ip'],
         'data_disks': data['data_disks']
     }
 
@@ -134,54 +115,6 @@ def create_vm_submit(sender, data):
     # reset vm name field
     core.set_value('vm_name', generate_vm_name())
     set_state(True)
-
-
-def enable_submit(sender, data):
-    val = core.get_value(sender)
-    if not val:
-        core.configure_item('Submit', enabled=False)
-    else:
-        core.configure_item('Submit', enabled=True)
-
-
-def set_state(state=True):
-    # Provision tab
-    core.configure_item('subscription', enabled=state)
-    core.configure_item('resource_group', enabled=state)
-    core.configure_item('network', enabled=state)
-    core.configure_item('subnet', enabled=state)
-    core.configure_item('vm_name', enabled=state)
-    core.configure_item('data_disks', enabled=state)
-    core.configure_item('Submit', enabled=state)
-
-    # VM tab
-    core.configure_item('Refresh VMs', enabled=state)
-    core.configure_item('subscription_vms', enabled=state)
-
-
-def set_state_popup(state):
-    core.configure_item('Cancel', enabled=state)
-    core.configure_item('Copy VM ID', enabled=state)
-    core.configure_item('Copy VM Details', enabled=state)
-    core.configure_item('Copy VM Info', enabled=state)
-    core.configure_item('Start', enabled=state)
-    core.configure_item('Stop', enabled=state)
-    core.configure_item('Restart', enabled=state)
-    core.configure_item('Deallocate', enabled=state)
-    core.configure_item('Associate Public IP', enabled=state)
-    core.configure_item('Dissociate Public IP', enabled=state)
-    core.configure_item('Resize Small', enabled=state)
-    core.configure_item('Resize Large', enabled=state)
-    core.configure_item('Delete', enabled=state)
-
-
-def refresh_subnet(sender, data):
-    network = core.get_value(sender)
-    subscription = get_current_subscription()
-    subnets = get_net_data_subnet(subscription, network)
-
-    core.configure_item('subnet', items=subnets)
-    core.set_value('subnet', subnets[0])
 
 
 def get_selected_vms(table_name, selections):
@@ -330,6 +263,10 @@ def dissociate_public_ip(table_name):
     core.close_popup('VM Action')
 
 
+def vm_resize_action():
+    pass
+
+
 def vm_action(action, table_name):
 
     vm_ids = get_vm_ids(table_name)
@@ -346,6 +283,7 @@ def vm_action(action, table_name):
         'resize_large': lambda: az_vm_resize('Standard_B2s', vm_ids),
         'delete': lambda: az_vm_delete(vm_ids),
     }
+
     if vm_ids:
         action_map[action]()
 
@@ -373,15 +311,6 @@ def refresh_vms():
         core.add_row(VMS_TABLE_NAME, vm.get_values())
 
     set_state(state=True)
-
-
-def colorize_button(name, color='red'):
-    colors = {
-        'red': [255, 0, 0, 255],
-        'green': [0, 255, 0, 150],
-        'blue': [0, 0, 255, 255],
-    }
-    core.set_item_color(name, core.mvGuiCol_Button, color=colors[color])
 
 
 def copy_vm_id(table_name):
@@ -445,10 +374,14 @@ def provision_tab():
         core.add_radio_button(
             'subscription',
             items=SUBSCRIPTIONS,
-            callback=refresh_rg
+            callback=refresh_provision_items
         )
 
-        rgs = get_rgs(get_current_subscription())
+        core.add_spacing(count=2)
+        core.add_separator()
+        core.add_spacing(count=2)
+
+        rgs = get_data_resource_group(get_current_subscription())
         core.add_combo(
             'resource_group',
             items=rgs,
@@ -469,6 +402,24 @@ def provision_tab():
             label='Subnet'
         )
 
+        nsg = get_data_nsg_names(get_current_subscription())
+        core.add_combo(
+            'nsg_group',
+            items=nsg,
+            label='Network Security Group'
+        )
+        if nsg:
+            core.set_value('nsg_group', nsg[0])
+
+        core.add_radio_button(
+            'public_ip',
+            items=['No Public IP', 'Public IP']
+        )
+
+        core.add_spacing(count=2)
+        core.add_separator()
+        core.add_spacing(count=2)
+
         core.add_input_text(
             'vm_name',
             label='VM Name',
@@ -483,9 +434,21 @@ def provision_tab():
             label='Data Disks'
         )
 
+        size_items = [string.capwords(size) for size in VM_SIZES.keys()]
+        core.add_combo(
+            'vm_size',
+            label='Size',
+            items=size_items
+        )
+        core.set_value('vm_size', size_items[0])
+
+        core.add_spacing(count=2)
+        core.add_separator()
+        core.add_spacing(count=2)
+
         core.add_button(
             'Submit',
-            callback=create_vm_submit,
+            callback=create_vm_action,
             callback_data=get_provision_data,
             enabled=True
         )
@@ -575,6 +538,7 @@ def main():
         core.add_data('vm_size_data', data=get_vm_sizes())
         core.add_data('rg_data', data=get_rg_data())
         core.add_data('net_data', data=get_net_data())
+        core.add_data('nsg_data', data=get_nsg_data())
 
         with simple.tab_bar('tab_bar'):
             provision_tab()

@@ -16,3 +16,9 @@ MAIN_WINDOW_SIZE = {'width': 900, 'height': 600}
 
 WINDOW_NAME = 'Azure'
 WINDOW_SIZE = {'width': 884, 'height': 561}
+
+VM_SIZES = {
+    'small': 'Standard_B1s',
+    'medium': 'Standard_B2s',
+    'large': 'Standard_B4ms'
+}

@@ -54,21 +54,27 @@ def az_vm_action(action, vm_ids):
     run_cmd(cmd, as_json=False)
 
 
-def create_az_vm(vm_name, subscription, resource_group, subnet_id, data_disks=0):
+def create_az_vm(vm_name, subscription, resource_group, subnet_id, image, size, nsg=None, public_ip=0, data_disks=0):
     core.log_info(logger=LOGGER, message=f'Creating VM {vm_name}...')
 
     vm_config = {
         'name': vm_name,
         'resource-group': resource_group,
-        'image': 'win2019datacenter',
+        'image': image,
         'admin-username': ADMIN_USERNAME,
         'admin-password': ADMIN_PASSWORD,
         'subscription': f'"{subscription}"',
-        'public-ip-address': '""',
-        'nsg': '""',
+        'size': size,
+        'nsg': nsg,
         'tags': generate_vm_tag(vm_name),
         'subnet': subnet_id,
     }
+
+    if not nsg:
+        vm_config['nsg'] = '""'
+
+    if not public_ip:
+        vm_config['public-ip-address'] = '""'
 
     az_command_params = ' '.join(f'--{key} {val}' for key, val in vm_config.items() if val)
     az_command = f'az vm create {az_command_params} --no-wait'
@@ -77,6 +83,9 @@ def create_az_vm(vm_name, subscription, resource_group, subnet_id, data_disks=0)
         data_disk_sizes = ['1' for _ in range(data_disks)]
         disks_param = f' --data-disk-sizes-gb {" ".join(data_disk_sizes)}'
         az_command += disks_param
+
+    print('VM Create cmd:')
+    print(az_command)
 
     cmd = system(az_command)
     if cmd != 0:
@@ -188,4 +197,9 @@ def get_az_vms_from_rg(subscription, resource_group):
 
 def get_az_resource_group(subscription):
     cmd = f'az group list --query "[].name" --subscription "{subscription}"'
+    return run_cmd(cmd)
+
+
+def get_az_nsg(subscription):
+    cmd = f'az network nsg list --subscription "{subscription}" --query "[].id"'
     return run_cmd(cmd)
