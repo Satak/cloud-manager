@@ -23,6 +23,7 @@ def delete_az_resources(resource_ids):
 def az_vm_delete(vm_ids):
 
     resource_ids = get_az_resource_ids(vm_ids)
+    public_ip_ids = get_az_vm_public_ip_ids(vm_ids)
     resource_id_list = []
 
     if len(vm_ids) > 1:
@@ -36,9 +37,14 @@ def az_vm_delete(vm_ids):
             for data_disk_id in vm_obj['dataDisks']:
                 resource_id_list.append(data_disk_id)
 
+        if public_ip_ids:
+            resource_id_list += public_ip_ids
+
         resource_ids_str = ' '.join(resource_id_list)
         print_resources(resource_id_list)
     else:
+        if public_ip_ids:
+            resource_ids += public_ip_ids
         resource_ids_str = ' '.join(resource_ids)
         print_resources(resource_ids)
 
@@ -105,6 +111,12 @@ def get_az_vm_details(vm_ids):
     cmd = f'az vm show -d --ids {ids_str}'
     data = run_cmd(cmd)
     return data
+
+
+def get_az_vm_public_ip_ids(vm_ids):
+    ids_str = ' '.join(vm_ids)
+    cmd = f'az vm list-ip-addresses --ids {ids_str} --query "[].virtualMachine.network.publicIpAddresses[].id" -o tsv'
+    return run_cmd(cmd, as_json=False)
 
 
 def get_az_resource_ids(vm_ids):
