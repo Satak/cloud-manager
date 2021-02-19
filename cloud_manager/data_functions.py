@@ -97,8 +97,8 @@ def set_state_popup(state):
     core.configure_item('Deallocate', enabled=state)
     core.configure_item('Associate Public IP', enabled=state)
     core.configure_item('Dissociate Public IP', enabled=state)
-    core.configure_item('Resize Small', enabled=state)
-    core.configure_item('Resize Large', enabled=state)
+    core.configure_item('Resize', enabled=state)
+    core.configure_item('new_vm_size', enabled=state)
     core.configure_item('Delete', enabled=state)
 
 

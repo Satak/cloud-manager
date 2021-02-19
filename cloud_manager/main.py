@@ -265,10 +265,6 @@ def dissociate_public_ip(table_name):
     core.close_popup('VM Action')
 
 
-def vm_resize_action():
-    pass
-
-
 def vm_action(action, table_name):
 
     vm_ids = get_vm_ids(table_name)
@@ -276,13 +272,16 @@ def vm_action(action, table_name):
         return
 
     set_state_popup(False)
+    size_name_data = core.get_value('new_vm_size')
+    new_size = next(
+        (size for size_name, size in VM_SIZES.items() if size_name_data.lower() == size_name.lower()), None)
+
     action_map = {
         'start': lambda: az_vm_action(action, vm_ids),
         'stop': lambda: az_vm_action(action, vm_ids),
         'restart': lambda: az_vm_action(action, vm_ids),
         'deallocate': lambda: az_vm_action(action, vm_ids),
-        'resize_small': lambda: az_vm_resize('Standard_B1s', vm_ids),
-        'resize_large': lambda: az_vm_resize('Standard_B2s', vm_ids),
+        'resize': lambda: az_vm_resize(new_size, vm_ids),
         'delete': lambda: az_vm_delete(vm_ids),
     }
 
@@ -507,10 +506,15 @@ def vms_tab():
             core.add_separator()
             core.add_spacing(count=1)
 
-            core.add_button('Resize Small', callback=lambda: vm_action(
-                'resize_small', VMS_TABLE_NAME))
-            core.add_button('Resize Large', callback=lambda: vm_action(
-                'resize_large', VMS_TABLE_NAME))
+            size_items = [string.capwords(size) for size in VM_SIZES.keys()]
+            core.add_combo(
+                'new_vm_size',
+                label='Size',
+                items=size_items
+            )
+            core.set_value('new_vm_size', size_items[0])
+            core.add_button('Resize', callback=lambda: vm_action(
+                'resize', VMS_TABLE_NAME))
 
             core.add_separator()
             core.add_spacing(count=4)
