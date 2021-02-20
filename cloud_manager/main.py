@@ -12,7 +12,10 @@ from configs import (
     WINDOW_NAME,
     WINDOW_SIZE,
     LOGGER,
-    VM_SIZES
+    VM_SIZES,
+    IMAGES,
+    ADMIN_USERNAME,
+    ADMIN_PASSWORD
 )
 
 from azure_functions import (
@@ -37,7 +40,8 @@ from azure_functions import (
 from misc_utils import (
     get_net_sub,
     get_vm_sizes,
-    generate_vm_name
+    generate_vm_name,
+    generate_vm_tag
 )
 
 from data_functions import (
@@ -100,20 +104,27 @@ def create_vm_action(sender, data):
     size = next(
         (size for size_name, size in VM_SIZES.items() if data['size'].lower() == size_name.lower()), 'Standard_B1ms')
     nsg = get_data_nsg_id(subscription, data['nsg'])
+    tags = generate_vm_tag(data["vm_name"])
 
     vm_props = {
         'vm_name': data['vm_name'],
         'subscription': subscription,
         'resource_group': data['resource_group'],
         'subnet_id': subnet_id,
-        'image': 'win2019datacenter',
+        'image': data['image'],
         'size': size,
+        'admin_username': ADMIN_USERNAME,
+        'admin_password': ADMIN_PASSWORD,
         'nsg': nsg,
+        'tags': tags,
         'public_ip': data['public_ip'],
         'data_disks': data['data_disks']
     }
 
+    core.log_info(logger=LOGGER, message=f'Creating VM {data["vm_name"]}...')
     create_az_vm(**vm_props)
+    core.log(logger=LOGGER, message=f'VM {data["vm_name"]} successfully created!')
+
     # reset vm name field
     core.set_value('vm_name', generate_vm_name())
     set_state(True)
@@ -202,7 +213,9 @@ def associate_public_ip(table_name):
             subscription=subscription
         )
 
-        print(f'[{vm.name}] Associate public IP OK: {public_ip_name}')
+        ok_msg = f'[{vm.name}] Associate public IP OK: {public_ip_name}'
+        print(ok_msg)
+        core.log(logger=LOGGER, message=ok_msg)
 
     set_state_popup(True)
     core.close_popup('VM Action')
@@ -257,9 +270,13 @@ def dissociate_public_ip(table_name):
             delete_az_resources([public_ip_id])
 
             print(f'[{vm.name}] Public IP deleted: {public_ip_id}')
+            ok_msg = f'[{vm.name}] Dissociate/delete public IP OK: {public_ip_name}'
+            core.log(logger=LOGGER, message=ok_msg)
 
         else:
-            print(f'[{vm.name}] Public IP not found from NIC: {nic_name}')
+            err_msg = f'[{vm.name}] Public IP not found from NIC: {nic_name}'
+            print(err_msg)
+            core.log_error(logger=LOGGER, message=err_msg)
 
     set_state_popup(True)
     core.close_popup('VM Action')
@@ -429,6 +446,14 @@ def provision_tab():
             default_value=generate_vm_name()
         )
 
+        images = list(core.get_data('images').keys())
+        core.add_combo(
+            'image',
+            label='Image',
+            items=images
+        )
+        core.set_value('image', images[0])
+
         core.add_slider_int(
             'data_disks',
             max_value=3,
@@ -544,6 +569,7 @@ def main():
     with simple.window(WINDOW_NAME, **WINDOW_SIZE, no_move=True, no_close=True, no_collapse=False, x_pos=0, y_pos=0, no_resize=True):
         core.add_data('subscriptions', data=get_az_subscriptions())
         core.add_data('vm_size_data', data=get_vm_sizes())
+        core.add_data('images', data=IMAGES)
         core.add_data('rg_data', data=get_rg_data())
         core.add_data('net_data', data=get_net_data())
         core.add_data('nsg_data', data=get_nsg_data())

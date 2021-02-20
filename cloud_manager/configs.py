@@ -18,3 +18,9 @@ VM_SIZES = {
     'medium': 'Standard_B2s',
     'large': 'Standard_B4ms'
 }
+
+IMAGES = {
+    'win2019datacenter': {'label': 'Windows 2019', 'os': 'Windows'},
+    'UbuntuLTS': {'label': 'Ubuntu 18.04', 'os': 'Linux'},
+    'CentOS': {'label': 'CentOS 7.5', 'os': 'Linux'}
+}

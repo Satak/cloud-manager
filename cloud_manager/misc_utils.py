@@ -1,6 +1,6 @@
 import subprocess
 from json import loads, load
-from os import get_exec_path, path
+from os import path
 from datetime import datetime
 
 from configs import VM_NAME_PREFIX
@@ -16,14 +16,16 @@ def run_cmd(cmd, as_json=True):
             return
 
         if not data:
-            return
+            print('No data from run_cmd')
+            return True
 
         try:
             if not as_json:
                 return [line.decode().strip() for line in data.splitlines() if line.decode().strip()]
 
             return loads(data)
-        except Exception:
+        except Exception as err:
+            print(f'Some rare exception occurred on run_cmd: {err}')
             return
 
 
