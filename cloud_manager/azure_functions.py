@@ -18,6 +18,21 @@ def az_vm_resize(size, vm_ids):
     run_cmd(cmd, as_json=False)
 
 
+def detach_az_disk(vm_name, disk_name, resource_group, subscription):
+    cmd = f'az vm disk detach --vm-name {vm_name} --name {disk_name} --resource-group {resource_group} --subscription "{subscription}"'
+    print('Detach disk:')
+    print(cmd)
+    run_cmd(cmd, as_json=False)
+
+
+def attach_az_disk(vm_name, disk_name, resource_group, subscription, size=1, sku='Standard_LRS'):
+    cmd = f'az vm disk attach --name {disk_name} --new --vm-name {vm_name} --size-gb {size} --sku {sku} --resource-group {resource_group} --subscription "{subscription}"'
+
+    print('Attach disk:')
+    print(cmd)
+    run_cmd(cmd, as_json=False)
+
+
 def delete_az_resources(resource_ids):
     resource_ids_str = ' '.join(resource_ids)
     cmd = f'az resource delete --ids {resource_ids_str}'
@@ -108,6 +123,12 @@ def get_az_subnet_ids(subscription):
 def get_az_vm_details(vm_ids):
     ids_str = ' '.join(vm_ids)
     cmd = f'az vm show -d --ids {ids_str}'
+    return run_cmd(cmd)
+
+
+def get_az_vm_data_disk_ids(vm_ids):
+    ids_str = ' '.join(vm_ids)
+    cmd = f'az vm show -d --ids {ids_str} --query "storageProfile.dataDisks[].managedDisk.id"'
     return run_cmd(cmd)
 
 

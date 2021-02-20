@@ -97,6 +97,7 @@ def set_state_popup(state):
     core.configure_item('Stop', enabled=state)
     core.configure_item('Restart', enabled=state)
     core.configure_item('Deallocate', enabled=state)
+    core.configure_item('Attach Disk', enabled=state)
     core.configure_item('Associate Public IP', enabled=state)
     core.configure_item('Dissociate Public IP', enabled=state)
     core.configure_item('Resize', enabled=state)

@@ -34,7 +34,10 @@ from azure_functions import (
     get_az_public_ip_address_id,
     delete_az_resources,
     get_az_nsg,
-    get_az_subscriptions
+    get_az_subscriptions,
+    attach_az_disk,
+    get_az_vm_data_disk_ids,
+    detach_az_disk
 )
 
 from misc_utils import (
@@ -282,6 +285,21 @@ def dissociate_public_ip(table_name):
     core.close_popup('VM Action')
 
 
+def attach_disk_action(disk_ids):
+    for disk_id in disk_ids:
+        data_disk_ids = get_az_vm_data_disk_ids([disk_id])
+        num = len(data_disk_ids) + 1
+        vm_name = disk_id.split('/')[-1]
+        props = {
+            'vm_name': vm_name,
+            'disk_name': f'{vm_name}-data-disk-{num}',
+            'resource_group': disk_id.split('/')[4],
+            'subscription': get_current_subscription_vms(core.get_data('subscriptions'))
+        }
+
+        attach_az_disk(**props)
+
+
 def vm_action(action, table_name):
 
     vm_ids = get_vm_ids(table_name)
@@ -299,6 +317,7 @@ def vm_action(action, table_name):
         'restart': lambda: az_vm_action(action, vm_ids),
         'deallocate': lambda: az_vm_action(action, vm_ids),
         'resize': lambda: az_vm_resize(new_size, vm_ids),
+        'attach_disk': lambda: attach_disk_action(vm_ids),
         'delete': lambda: az_vm_delete(vm_ids),
     }
 
@@ -521,6 +540,9 @@ def vms_tab():
 
             core.add_separator()
             core.add_spacing(count=1)
+
+            core.add_button('Attach Disk',
+                            callback=lambda: vm_action('attach_disk', VMS_TABLE_NAME))
 
             core.add_button('Associate Public IP',
                             callback=lambda: associate_public_ip(VMS_TABLE_NAME))
