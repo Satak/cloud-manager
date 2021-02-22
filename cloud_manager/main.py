@@ -66,9 +66,15 @@ from data_functions import (
 
 VMS_TABLE_NAME = "Az VMs"
 
+
 core.set_main_window_title(MAIN_WINDOW_NAME)
 core.set_main_window_size(**MAIN_WINDOW_SIZE)
 core.set_main_window_resizable(False)
+
+
+def apply_theme(sender, data):
+    theme = core.get_value('Themes')
+    core.set_theme(theme)
 
 
 def get_nsg_data():
@@ -588,7 +594,13 @@ def log_tab():
 # ------------- MAIN -------------
 
 def main():
+
     with simple.window(WINDOW_NAME, **WINDOW_SIZE, no_move=True, no_close=True, no_collapse=False, x_pos=0, y_pos=0, no_resize=True):
+        with simple.menu_bar('Main Menu Bar'):
+            with simple.menu('Settings'):
+                themes = ['Dark', 'Light', 'Classic', 'Dark 2', 'Grey',
+                          'Dark Grey', 'Cherry', 'Purple', 'Gold', 'Red']
+                core.add_combo('Themes', items=themes, default_value='Dark', callback=apply_theme)
         core.add_data('subscriptions', data=get_az_subscriptions())
         core.add_data('vm_size_data', data=get_vm_sizes())
         core.add_data('images', data=IMAGES)

@@ -1,6 +1,6 @@
 # Cloud Manager
 
-Small Python UI wrapper for Azure CLI. Windows only at this point! Create and delete virtual machines (Windows 2019 image) with one mouse click. Easy 😎
+Small Python UI wrapper for Azure CLI. Windows only at this point! Create and manage virtual machines from single and intuitive UI 😎
 
 ## Prerequisites
 
@@ -16,13 +16,32 @@ You must install all these prerequisites and authenticate to Azure with az cli b
 - Install `pyperclip` (Python library: <https://github.com/asweigart/pyperclip>)
   - run `pip install pyperclip`
 
-**Before first use, change settings in the `/cloud_manager/configs.py` to fit your Azure environment settings!**
-
 ## Start
+
+To start the cloud manager just run the `main.py`
 
 `python .\cloud_manager\main.py`
 
-Launch takes around 20-30 seconds.
+Launch takes around 20-30 seconds since it's collecting resource group and network data from Azure.
+
+## Themes
+
+You can select your preferred theme from the `Settings` menu.
+
+## Supported management actions
+
+- Copy VM ID to clipboard
+- Copy VM Details (API fetch) to clipboard as JSON
+- Copy VM Info (local info) to clipboard as JSON
+- Start VM
+- Stop VM
+- Restart VM
+- Deallocate VM
+- Attach & Create Disk to VM
+- Associate Public IP
+- Dissociate Public IP
+- Resize VM
+- Delete VM
 
 ## Examples
 
