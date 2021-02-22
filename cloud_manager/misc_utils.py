@@ -1,6 +1,6 @@
 import subprocess
 from json import loads, load
-from os import path
+from os import path, listdir
 from datetime import datetime
 
 from configs import VM_NAME_PREFIX
@@ -77,3 +77,9 @@ def get_vm_sizes():
 
     return {size['name']: {'cpu': size['numberOfCores'],
                            'mem': size['memoryInMb']//1024} for size in sizes}
+
+
+def get_scripts():
+    root_path = path.dirname(path.abspath(__file__))
+    scripts_folder_path = path.join(root_path, 'scripts')
+    return [f for f in listdir(scripts_folder_path) if path.isfile(path.join(scripts_folder_path, f))]

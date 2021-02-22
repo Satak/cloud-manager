@@ -46,7 +46,8 @@ from misc_utils import (
     generate_vm_name,
     generate_vm_tag,
     run_add_cmdkey,
-    run_rdp_cmd
+    run_rdp_cmd,
+    get_scripts
 )
 
 from data_functions import (
@@ -430,6 +431,14 @@ def rdp_action(table_name):
     set_state_popup(True)
     core.close_popup('VM Action')
 
+
+def execute_script_action(table_name):
+    # Not implemented yet!
+    script_to_execute = core.get_value('script-to-execute')
+    print('Execute', script_to_execute)
+    core.close_popup('VM Action')
+
+
 # ------------- TABS -------------
 
 
@@ -554,10 +563,20 @@ def vms_tab():
 
         with simple.popup(VMS_TABLE_NAME, 'VM Action', mousebutton=core.mvMouseButton_Right, modal=True):
             core.add_button('Cancel', callback=lambda: core.close_popup('VM Action'))
-            core.add_button('Copy VM ID', callback=lambda:  copy_vm_id(VMS_TABLE_NAME))
-            core.add_button('Copy VM Details', callback=lambda:  copy_vm_details(VMS_TABLE_NAME))
-            core.add_button('Copy VM Info', callback=lambda:  copy_vm_info(VMS_TABLE_NAME))
-            core.add_button('RDP', callback=lambda:  rdp_action(VMS_TABLE_NAME))
+            core.add_button('Copy VM ID', callback=lambda: copy_vm_id(VMS_TABLE_NAME))
+            core.add_button('Copy VM Details', callback=lambda: copy_vm_details(VMS_TABLE_NAME))
+            core.add_button('Copy VM Info', callback=lambda: copy_vm_info(VMS_TABLE_NAME))
+
+            core.add_separator()
+            core.add_spacing(count=1)
+            core.add_combo(
+                'script-to-execute',
+                label='Script to Execute',
+                items=get_scripts()
+            )
+            core.add_button('Execute Script',
+                            callback=lambda: execute_script_action(VMS_TABLE_NAME))
+            core.add_button('RDP', callback=lambda: rdp_action(VMS_TABLE_NAME))
 
             core.add_separator()
             core.add_spacing(count=1)

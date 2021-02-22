@@ -93,6 +93,8 @@ def set_state_popup(state):
     core.configure_item('Copy VM ID', enabled=state)
     core.configure_item('Copy VM Details', enabled=state)
     core.configure_item('Copy VM Info', enabled=state)
+    core.configure_item('script-to-execute', enabled=state)
+    core.configure_item('Execute Script', enabled=state)
     core.configure_item('RDP', enabled=state)
     core.configure_item('Start', enabled=state)
     core.configure_item('Stop', enabled=state)
