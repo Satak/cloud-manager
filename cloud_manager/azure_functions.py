@@ -237,3 +237,10 @@ def get_az_resource_group(subscription):
 def get_az_nsg(subscription):
     cmd = f'az network nsg list --subscription "{subscription}" --query "[].id"'
     return run_cmd(cmd)
+
+
+def execute_az_script(vm_ids, script_str):
+    ids_str = ' '.join(vm_ids)
+    cmd = f'az vm run-command invoke --command-id RunPowerShellScript --ids {ids_str} --scripts "{script_str}"'
+    print(cmd)
+    return run_cmd(cmd)

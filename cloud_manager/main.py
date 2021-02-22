@@ -37,7 +37,8 @@ from azure_functions import (
     get_az_subscriptions,
     attach_az_disk,
     get_az_vm_data_disk_ids,
-    detach_az_disk
+    detach_az_disk,
+    execute_az_script
 )
 
 from misc_utils import (
@@ -433,9 +434,27 @@ def rdp_action(table_name):
 
 
 def execute_script_action(table_name):
-    # Not implemented yet!
+    set_state_popup(False)
+    vm_objects = get_vm_ids(table_name, data_type='object')
+    if not vm_objects:
+        print('vm_objects not found...')
+        set_state_popup(True)
+        core.close_popup('VM Action')
+        return
+
+    vm_ids = [vm.id for vm in vm_objects]
     script_to_execute = core.get_value('script-to-execute')
-    print('Execute', script_to_execute)
+
+    inject_user_script = f'New-LocalUser -AccountNeverExpires:$true -Password ( ConvertTo-SecureString -AsPlainText -Force \'{ADMIN_PASSWORD}\') -Name {ADMIN_USERNAME} | Add-LocalGroupMember -Group administrators'
+    remove_local_usr_script = f'Remove-LocalUser -Name {ADMIN_USERNAME}'
+
+    if script_to_execute == 'create-local-admin.ps1':
+        execute_az_script(vm_ids, inject_user_script)
+    elif script_to_execute == 'remove-local-user.ps1':
+        execute_az_script(vm_ids, remove_local_usr_script)
+
+    print(f'[{script_to_execute}] Script executed')
+    set_state_popup(True)
     core.close_popup('VM Action')
 
 
