@@ -193,6 +193,7 @@ def get_az_vms(subscription):
         'os': 'storageProfile.imageReference.offer',
         'osVer': 'storageProfile.imageReference.sku',
         'nics': 'networkProfile.networkInterfaces[].id',
+        'dataDisks': 'storageProfile.dataDisks[].managedDisk.id'
     }
 
     query = ', '.join(f'{key}: {val}' for key, val in query_props.items() if val)
@@ -214,6 +215,7 @@ def get_az_vms(subscription):
             'mem': size_obj['mem'],
             'ips': vm_obj['privateIps'] if not vm_obj['publicIps'] else [vm_obj['privateIps'], vm_obj['publicIps']],
             'nics': vm_obj['nics'],
+            'data_disks': vm_obj['dataDisks'],
             'os': f'{vm_obj["os"]} - {vm_obj["osVer"]}'
         }
 

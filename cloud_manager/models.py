@@ -13,6 +13,7 @@ class VirtualMachine:
     mem: int
     ips: str
     nics: list[str]
+    data_disks: list[str]
     os: str
 
     @property
@@ -33,6 +34,7 @@ class VirtualMachine:
             self.rg,
             self.cpu,
             self.mem,
+            len(self.data_disks),
             self.size,
             self.ips,
             self.os
@@ -46,6 +48,7 @@ class VirtualMachine:
             'Resource Group',
             'CPU',
             'Memory GB',
+            'Data Disks',
             'Size',
             'IP Address',
             'OS'
