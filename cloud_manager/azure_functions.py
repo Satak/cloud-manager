@@ -179,7 +179,7 @@ def dissociate_az_public_ip(ip_config_name, nic_name, resource_group, subscripti
     run_cmd(cmd)
 
 
-def get_az_vms(subscription: str) -> list[VirtualMachine]:
+def get_az_vms(subscription):
     '''Get Azure VMs from subscription'''
 
     query_props = {
