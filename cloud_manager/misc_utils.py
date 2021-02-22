@@ -29,6 +29,19 @@ def run_cmd(cmd, as_json=True):
             return
 
 
+def run_add_cmdkey(server, username, password):
+    cmd = f'cmdkey /generic:"{server}" /user:"{username}" /pass:"{password}"'
+    run_cmd(cmd, as_json=False)
+    print(f'[{server}] cmdkey done for RDP')
+
+
+def run_rdp_cmd(server):
+    cmd = f'mstsc /v:{server} /w:1920 /h:1080'
+    print(f'[{server}] RDP session started')
+    run_cmd(cmd, as_json=False)
+    print(f'[{server}] RDP session ended')
+
+
 def get_net_sub(subnet_id):
     ar = subnet_id.split('/')
     subnet = ar[-1]

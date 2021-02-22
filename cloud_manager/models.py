@@ -11,10 +11,15 @@ class VirtualMachine:
     size: str
     cpu: int
     mem: int
-    ips: str
+    private_ips: str
+    public_ips: str
     nics: list[str]
     data_disks: list[str]
     os: str
+
+    @property
+    def ips(self):
+        return [self.private_ips, self.public_ips] if self.public_ips else self.private_ips
 
     @property
     def simple_state(self):

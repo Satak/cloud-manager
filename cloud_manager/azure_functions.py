@@ -213,7 +213,8 @@ def get_az_vms(subscription):
             'size': vm_obj['size'],
             'cpu': size_obj['cpu'],
             'mem': size_obj['mem'],
-            'ips': vm_obj['privateIps'] if not vm_obj['publicIps'] else [vm_obj['privateIps'], vm_obj['publicIps']],
+            'private_ips': vm_obj['privateIps'],
+            'public_ips': vm_obj['publicIps'],
             'nics': vm_obj['nics'],
             'data_disks': vm_obj['dataDisks'],
             'os': f'{vm_obj["os"]} - {vm_obj["osVer"]}'

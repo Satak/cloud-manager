@@ -44,7 +44,9 @@ from misc_utils import (
     get_net_sub,
     get_vm_sizes,
     generate_vm_name,
-    generate_vm_tag
+    generate_vm_tag,
+    run_add_cmdkey,
+    run_rdp_cmd
 )
 
 from data_functions import (
@@ -408,6 +410,26 @@ def copy_vm_info(table_name):
     set_state_popup(True)
     core.close_popup('VM Action')
 
+
+def rdp_action(table_name):
+    set_state_popup(False)
+    vm_objects = get_vm_ids(table_name, data_type='object')
+    if not vm_objects:
+        print('vm_objects not found...')
+        set_state_popup(True)
+        core.close_popup('VM Action')
+        return
+
+    for vm in vm_objects:
+        if not vm.public_ips:
+            print(f'[{vm.name}] No public IP found...')
+            continue
+        run_add_cmdkey(vm.public_ips, ADMIN_USERNAME, ADMIN_PASSWORD)
+        run_rdp_cmd(vm.public_ips)
+
+    set_state_popup(True)
+    core.close_popup('VM Action')
+
 # ------------- TABS -------------
 
 
@@ -535,6 +557,7 @@ def vms_tab():
             core.add_button('Copy VM ID', callback=lambda:  copy_vm_id(VMS_TABLE_NAME))
             core.add_button('Copy VM Details', callback=lambda:  copy_vm_details(VMS_TABLE_NAME))
             core.add_button('Copy VM Info', callback=lambda:  copy_vm_info(VMS_TABLE_NAME))
+            core.add_button('RDP', callback=lambda:  rdp_action(VMS_TABLE_NAME))
 
             core.add_separator()
             core.add_spacing(count=1)
