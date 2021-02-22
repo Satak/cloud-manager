@@ -239,8 +239,7 @@ def get_az_nsg(subscription):
     return run_cmd(cmd)
 
 
-def execute_az_script(vm_ids, script_str):
+def execute_az_script(vm_ids, script_str, parameters):
     ids_str = ' '.join(vm_ids)
-    cmd = f'az vm run-command invoke --command-id RunPowerShellScript --ids {ids_str} --scripts "{script_str}"'
-    print(cmd)
+    cmd = f'az vm run-command invoke --command-id RunPowerShellScript --ids {ids_str} --scripts "{script_str}" --parameters {parameters}'
     return run_cmd(cmd)

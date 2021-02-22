@@ -48,7 +48,8 @@ from misc_utils import (
     generate_vm_tag,
     run_add_cmdkey,
     run_rdp_cmd,
-    get_scripts
+    get_scripts,
+    get_script_path
 )
 
 from data_functions import (
@@ -445,15 +446,14 @@ def execute_script_action(table_name):
     vm_ids = [vm.id for vm in vm_objects]
     script_to_execute = core.get_value('script-to-execute')
 
-    inject_user_script = f'New-LocalUser -AccountNeverExpires:$true -Password ( ConvertTo-SecureString -AsPlainText -Force \'{ADMIN_PASSWORD}\') -Name {ADMIN_USERNAME} | Add-LocalGroupMember -Group administrators'
-    remove_local_usr_script = f'Remove-LocalUser -Name {ADMIN_USERNAME}'
+    params = f'"Username={ADMIN_USERNAME}" "Password={ADMIN_PASSWORD}"'
+    res = execute_az_script(vm_ids, get_script_path(script_to_execute), params)
 
-    if script_to_execute == 'create-local-admin.ps1':
-        execute_az_script(vm_ids, inject_user_script)
-    elif script_to_execute == 'remove-local-user.ps1':
-        execute_az_script(vm_ids, remove_local_usr_script)
-
+    print('')
     print(f'[{script_to_execute}] Script executed')
+    print(res)
+    print('')
+
     set_state_popup(True)
     core.close_popup('VM Action')
 

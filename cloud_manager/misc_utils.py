@@ -83,3 +83,9 @@ def get_scripts():
     root_path = path.dirname(path.abspath(__file__))
     scripts_folder_path = path.join(root_path, 'scripts')
     return [f for f in listdir(scripts_folder_path) if path.isfile(path.join(scripts_folder_path, f))]
+
+
+def get_script_path(file_name):
+    root_path = path.dirname(path.abspath(__file__))
+    scripts_folder_path = path.join(root_path, 'scripts', file_name)
+    return f'@{scripts_folder_path}'
