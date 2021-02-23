@@ -39,7 +39,8 @@ from azure_functions import (
     attach_az_disk,
     get_az_vm_data_disk_ids,
     detach_az_disk,
-    execute_az_script
+    execute_az_script,
+    get_az_nsg_ids
 )
 
 from misc_utils import (
@@ -415,6 +416,25 @@ def copy_vm_info(table_name):
     core.close_popup('VM Action')
 
 
+def get_nsg_info(table_name):
+    set_state_popup(False)
+    vm_objects = get_vm_ids(table_name, data_type='object')
+    if not vm_objects:
+        print('vm_objects not found...')
+        set_state_popup(True)
+        core.close_popup('VM Action')
+        return
+
+    nic_ids = [vm.nics[0] for vm in vm_objects]
+
+    nsg_data = get_az_nsg_ids(nic_ids)
+    pyperclip.copy(dumps(nsg_data, indent=2))
+
+    print('NSG info copied')
+    set_state_popup(True)
+    core.close_popup('VM Action')
+
+
 def rdp_action(table_name):
     set_state_popup(False)
     vm_objects = get_vm_ids(table_name, data_type='object')
@@ -601,6 +621,7 @@ def vms_tab():
             core.add_button('Copy VM ID', callback=lambda: copy_vm_id(VMS_TABLE_NAME))
             core.add_button('Copy VM Details', callback=lambda: copy_vm_details(VMS_TABLE_NAME))
             core.add_button('Copy VM Info', callback=lambda: copy_vm_info(VMS_TABLE_NAME))
+            core.add_button('Get NSG Info', callback=lambda: get_nsg_info(VMS_TABLE_NAME))
 
             core.add_separator()
             core.add_spacing(count=1)

@@ -30,20 +30,21 @@ You can select your preferred theme from the `Settings` menu.
 
 ## Supported management actions
 
-- Copy VM ID to clipboard
-- Copy VM Details (API fetch) to clipboard as JSON
-- Copy VM Info (local info) to clipboard as JSON
-- Execute Script (put your own scripts under `scripts` folder)
-- RDP
-- Start VM
-- Stop VM
-- Restart VM
-- Deallocate VM
-- Attach & Create Disk to VM
-- Associate Public IP
-- Dissociate Public IP
-- Resize VM
-- Delete VM
+- `Copy VM ID` to clipboard
+- `Copy VM Details` (API fetch) to clipboard as JSON
+- `Get NSG Info` Copy VM Network Security Group Info to clipboard as JSON
+- `Copy VM Info` (local info) to clipboard as JSON
+- `Execute Script` (put your own scripts under `scripts` folder)
+- `RDP` Open Remote Desktop connection
+- `Start` VM
+- `Stop` VM
+- `Restart` VM
+- `Deallocate` VM
+- `Attach Disk` Attach & Create Disk to VM
+- `Associate Public IP` Create and associate public IP to VM
+- `Dissociate Public IP` Dissociate and delete public IP from VM
+- `Resize` VM
+- `Delete` VM
 
 ## Examples
 

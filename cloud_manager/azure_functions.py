@@ -138,6 +138,17 @@ def get_az_vm_public_ip_ids(vm_ids):
     return run_cmd(cmd, as_json=False)
 
 
+def get_az_nsg_ids(vm_ids):
+    ids_str = ' '.join(vm_ids)
+    query = '{vmId: virtualMachine.id, nsgId: networkSecurityGroup.id}'
+
+    if len(vm_ids) > 1:
+        query = f'[].{query}'
+
+    cmd = f'az network nic show --ids {ids_str} --query "{query}"'
+    return run_cmd(cmd)
+
+
 def get_az_resource_ids(vm_ids):
     ids_str = ' '.join(vm_ids)
     if len(vm_ids) > 1:
