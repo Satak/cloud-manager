@@ -33,7 +33,7 @@ You can select your preferred theme from the `Settings` menu.
 - Copy VM ID to clipboard
 - Copy VM Details (API fetch) to clipboard as JSON
 - Copy VM Info (local info) to clipboard as JSON
-- Execute Script
+- Execute Script (put your own scripts under `scripts` folder)
 - RDP
 - Start VM
 - Stop VM

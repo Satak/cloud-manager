@@ -452,13 +452,23 @@ def execute_script_action(table_name):
     else:
         params = core.get_value('script_params')
 
+    script_file_type = script_to_execute.split('.')[-1]
+
+    command = 'RunPowerShellScript' if script_file_type == 'ps1' else 'RunShellScript'
+
     print('')
     print(f'[{script_to_execute}] Executing...')
-    res = execute_az_script(vm_ids, get_script_path(script_to_execute), params)
+    res = execute_az_script(vm_ids, get_script_path(script_to_execute), params, command)
 
     print(f'[{script_to_execute}] Script executed. Results:')
-    pprint(res, depth=5, indent=2)
-    print('')
+
+    if 'value' in res:
+        for item in res['value']:
+            print('')
+            pprint(item, indent=2)
+            print('')
+            if 'message' in item and item['code'] == 'ComponentStatus/StdOut/succeeded':
+                core.log(logger=LOGGER, message=item['message'])
 
     set_state_popup(True)
     core.close_popup('VM Action')
