@@ -3,6 +3,7 @@ import string
 
 from dearpygui import core, simple
 import pyperclip
+from pprint import pprint
 
 from models import VirtualMachine
 
@@ -446,12 +447,17 @@ def execute_script_action(table_name):
     vm_ids = [vm.id for vm in vm_objects]
     script_to_execute = core.get_value('script-to-execute')
 
-    params = f'"Username={ADMIN_USERNAME}" "Password={ADMIN_PASSWORD}"'
-    res = execute_az_script(vm_ids, get_script_path(script_to_execute), params)
+    if script_to_execute in ['create-local-admin.ps1', 'remove-local-user.ps1']:
+        params = f'"Username={ADMIN_USERNAME}" "Password={ADMIN_PASSWORD}"'
+    else:
+        params = core.get_value('script_params')
 
     print('')
-    print(f'[{script_to_execute}] Script executed')
-    print(res)
+    print(f'[{script_to_execute}] Executing...')
+    res = execute_az_script(vm_ids, get_script_path(script_to_execute), params)
+
+    print(f'[{script_to_execute}] Script executed. Results:')
+    pprint(res, depth=5, indent=2)
     print('')
 
     set_state_popup(True)
@@ -521,6 +527,14 @@ def provision_tab():
             default_value=generate_vm_name()
         )
 
+        size_items = [string.capwords(size) for size in VM_SIZES.keys()]
+        core.add_combo(
+            'vm_size',
+            label='VM Size',
+            items=size_items
+        )
+        core.set_value('vm_size', size_items[0])
+
         images = list(core.get_data('images').keys())
         core.add_combo(
             'image',
@@ -534,14 +548,6 @@ def provision_tab():
             max_value=3,
             label='Data Disks'
         )
-
-        size_items = [string.capwords(size) for size in VM_SIZES.keys()]
-        core.add_combo(
-            'vm_size',
-            label='Size',
-            items=size_items
-        )
-        core.set_value('vm_size', size_items[0])
 
         core.add_spacing(count=2)
         core.add_separator()
@@ -592,6 +598,11 @@ def vms_tab():
                 'script-to-execute',
                 label='Script to Execute',
                 items=get_scripts()
+            )
+            core.add_input_text(
+                'script_params',
+                label='Parameters',
+                default_value='"Name=Value" "Item=Something"'
             )
             core.add_button('Execute Script',
                             callback=lambda: execute_script_action(VMS_TABLE_NAME))
