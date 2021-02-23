@@ -140,7 +140,7 @@ def get_az_vm_public_ip_ids(vm_ids):
 
 def get_az_nsg_ids(vm_ids):
     ids_str = ' '.join(vm_ids)
-    query = '{vmId: virtualMachine.id, nsgId: networkSecurityGroup.id}'
+    query = '{vmId: virtualMachine.id, nsgId: networkSecurityGroup.id, subnetId: ipConfigurations[].subnet.id}'
 
     if len(vm_ids) > 1:
         query = f'[].{query}'
