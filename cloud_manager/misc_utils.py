@@ -17,7 +17,7 @@ def run_cmd(cmd, as_json=True):
 
         if not data:
             print('No data from run_cmd')
-            return True
+            return
 
         try:
             if not as_json:
