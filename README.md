@@ -1,6 +1,6 @@
 # Cloud Manager
 
-Small Python UI wrapper for Azure CLI. Windows only at this point! Create and manage virtual machines from single and intuitive UI 😎
+Small Python UI wrapper for Azure CLI. Create and manage virtual machines from single and intuitive UI 😎
 
 ## Prerequisites
 
@@ -8,7 +8,7 @@ You must install all these prerequisites and authenticate to Azure with az cli b
 
 - Windows only (tested with **Windows 10**)
 - Azure cloud subscription
-- Install Python **3.9**
+- Install Python (tested with 3.9)
 - Install Azure CLI (<https://docs.microsoft.com/en-us/cli/azure/install-azure-cli-windows?tabs=azure-cli>)
   - run `az login` to authenticate to your Azure subscription
 - Install `dearpygui` (Python library: <https://github.com/hoffstadt/DearPyGui>)
@@ -49,8 +49,6 @@ You can select your preferred theme from the `Settings` menu.
 ## Examples
 
 ![cloud manager main](./images/cloud_manager.PNG 'Cloud Manager Main')
-
 ![cloud manager vms](./images/cloud_manager_vms.PNG 'Cloud Manager VMs')
 ![cloud manager action](./images/cloud_manager_action.PNG 'Cloud Manager Action')
-
 ![cloud manager log](./images/cloud_manager_log.PNG 'Cloud Manager Log')
