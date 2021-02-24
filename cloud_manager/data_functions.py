@@ -88,8 +88,9 @@ def set_state(state=True):
     core.configure_item('subscription_vms', enabled=state)
 
 
-def set_state_popup(state):
-    core.configure_item('Cancel', enabled=state)
+def set_state_popup(state, include_cancel=True):
+    if include_cancel:
+        core.configure_item('Cancel', enabled=state)
     core.configure_item('Copy VM ID', enabled=state)
     core.configure_item('Copy VM Details', enabled=state)
     core.configure_item('Copy VM Info', enabled=state)

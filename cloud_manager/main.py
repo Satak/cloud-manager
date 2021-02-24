@@ -79,7 +79,7 @@ core.set_main_window_size(**MAIN_WINDOW_SIZE)
 core.set_main_window_resizable(False)
 
 
-def apply_theme(sender, data):
+def apply_theme():
     theme = core.get_value('Themes')
     core.set_theme(theme)
 
@@ -177,8 +177,8 @@ def get_vm_ids(table_name, data_type='id'):
     selections = core.get_table_selections(table_name)
 
     if not selections:
-        core.close_popup('VM Action')
-        print('Nothing selected...')
+        # core.close_popup('VM Action')
+        # print('Nothing selected...')
         return
 
     selected_vms = get_selected_vms(table_name, selections)
@@ -187,14 +187,9 @@ def get_vm_ids(table_name, data_type='id'):
     return [find_vms(vm_obj, vms_data, data_type) for vm_obj in selected_vms.values()]
 
 
-def associate_public_ip(table_name):
+def associate_public_ip():
     set_state_popup(False)
-    vm_objects = get_vm_ids(table_name, data_type='object')
-    if not vm_objects:
-        print('vm_objects not found...')
-        set_state_popup(True)
-        core.close_popup('VM Action')
-        return
+    vm_objects = core.get_data('selected_vms_data')
     subscription = get_current_subscription_vms(core.get_data('subscriptions'))
 
     for vm in vm_objects:
@@ -237,14 +232,9 @@ def associate_public_ip(table_name):
     core.close_popup('VM Action')
 
 
-def dissociate_public_ip(table_name):
+def dissociate_public_ip():
     set_state_popup(False)
-    vm_objects = get_vm_ids(table_name, data_type='object')
-    if not vm_objects:
-        print('vm_objects not found...')
-        set_state_popup(True)
-        core.close_popup('VM Action')
-        return
+    vm_objects = core.get_data('selected_vms_data')
     subscription = get_current_subscription_vms(core.get_data('subscriptions'))
 
     for vm in vm_objects:
@@ -313,13 +303,11 @@ def attach_disk_action(disk_ids):
         attach_az_disk(**props)
 
 
-def vm_action(action, table_name):
-
-    vm_ids = get_vm_ids(table_name)
-    if not vm_ids:
-        return
-
+def vm_action(action):
     set_state_popup(False)
+    vm_objects = core.get_data('selected_vms_data')
+    vm_ids = [vm.id for vm in vm_objects]
+
     size_name_data = core.get_value('new_vm_size')
     new_size = next(
         (size for size_name, size in VM_SIZES.items() if size_name_data.lower() == size_name.lower()), None)
@@ -360,15 +348,15 @@ def refresh_vms():
     for vm in core.get_data('vms_data'):
         core.add_row(VMS_TABLE_NAME, vm.get_values())
 
+    core.configure_item('selected_vms', items=[])
+    core.configure_item('selected_vms', num_items=0)
+
     set_state(state=True)
 
 
-def copy_vm_id(table_name):
-    vm_ids = get_vm_ids(table_name)
-    if not vm_ids:
-        print('vm_ids not found...')
-        core.close_popup('VM Action')
-        return
+def copy_vm_id():
+    vm_objects = core.get_data('selected_vms_data')
+    vm_ids = [vm.id for vm in vm_objects]
 
     pyperclip.copy(' '.join(vm_ids))
 
@@ -376,14 +364,10 @@ def copy_vm_id(table_name):
     core.close_popup('VM Action')
 
 
-def copy_vm_details(table_name):
+def copy_vm_details():
     set_state_popup(False)
-    vm_ids = get_vm_ids(table_name)
-    if not vm_ids:
-        print('vm_ids not found...')
-        set_state_popup(True)
-        core.close_popup('VM Action')
-        return
+    vm_objects = core.get_data('selected_vms_data')
+    vm_ids = [vm.id for vm in vm_objects]
 
     vm_details = get_az_vm_details(vm_ids)
 
@@ -400,30 +384,21 @@ def copy_vm_details(table_name):
     core.close_popup('VM Action')
 
 
-def copy_vm_info(table_name):
+def copy_vm_info():
     set_state_popup(False)
-    vm_objects = get_vm_ids(table_name, data_type='dict')
-    if not vm_objects:
-        print('vm_objects not found...')
-        set_state_popup(True)
-        core.close_popup('VM Action')
-        return
+    vm_objects = core.get_data('selected_vms_data')
+    vm_dicts = [vm.__dict__ for vm in vm_objects]
 
-    pyperclip.copy(dumps(vm_objects, indent=2))
+    pyperclip.copy(dumps(vm_dicts, indent=2))
 
     print('VM basic info copied')
     set_state_popup(True)
     core.close_popup('VM Action')
 
 
-def get_nsg_info(table_name):
+def get_nsg_info():
     set_state_popup(False)
-    vm_objects = get_vm_ids(table_name, data_type='object')
-    if not vm_objects:
-        print('vm_objects not found...')
-        set_state_popup(True)
-        core.close_popup('VM Action')
-        return
+    vm_objects = core.get_data('selected_vms_data')
 
     nic_ids = [vm.nics[0] for vm in vm_objects]
 
@@ -435,14 +410,9 @@ def get_nsg_info(table_name):
     core.close_popup('VM Action')
 
 
-def rdp_action(table_name):
+def rdp_action():
     set_state_popup(False)
-    vm_objects = get_vm_ids(table_name, data_type='object')
-    if not vm_objects:
-        print('vm_objects not found...')
-        set_state_popup(True)
-        core.close_popup('VM Action')
-        return
+    vm_objects = core.get_data('selected_vms_data')
 
     for vm in vm_objects:
         if not vm.public_ips:
@@ -455,16 +425,13 @@ def rdp_action(table_name):
     core.close_popup('VM Action')
 
 
-def execute_script_action(table_name):
+def execute_script_action():
     set_state_popup(False)
-    vm_objects = get_vm_ids(table_name, data_type='object')
-    if not vm_objects:
-        print('vm_objects not found...')
-        set_state_popup(True)
-        core.close_popup('VM Action')
-        return
+
+    vm_objects = core.get_data('selected_vms_data')
 
     vm_ids = [vm.id for vm in vm_objects]
+    vm_names = [vm.name for vm in vm_objects]
     script_to_execute = core.get_value('script-to-execute')
 
     if script_to_execute in ['create-local-admin.ps1', 'remove-local-user.ps1']:
@@ -477,7 +444,7 @@ def execute_script_action(table_name):
     command = 'RunPowerShellScript' if script_file_type == 'ps1' else 'RunShellScript'
 
     print('')
-    print(f'[{script_to_execute}] Executing...')
+    print(f'[{script_to_execute}] Executing against: {vm_names}...')
     res = execute_az_script(vm_ids, get_script_path(script_to_execute), params, command)
 
     print(f'[{script_to_execute}] Script executed. Results:')
@@ -492,6 +459,18 @@ def execute_script_action(table_name):
 
     set_state_popup(True)
     core.close_popup('VM Action')
+
+
+def action_popup_controller():
+    vm_objects = get_vm_ids(VMS_TABLE_NAME, data_type='object')
+    core.add_data('selected_vms_data', vm_objects)
+
+    vms = [vm.name for vm in vm_objects] if vm_objects else []
+
+    core.configure_item('selected_vms', items=vms)
+    core.configure_item('selected_vms', num_items=len(vms))
+
+    set_state_popup(bool(vm_objects), False)
 
 
 # ------------- TABS -------------
@@ -611,20 +590,29 @@ def vms_tab():
             get_current_subscription_vms(core.get_data('subscriptions'))))
 
         core.add_table(VMS_TABLE_NAME, headers=VirtualMachine.get_headers(),
-                       width=WINDOW_SIZE['width'], height=500)
+                       width=WINDOW_SIZE['width'], height=500, callback=action_popup_controller)
 
         for vm in core.get_data('vms_data'):
             core.add_row(VMS_TABLE_NAME, vm.get_values())
 
         with simple.popup(VMS_TABLE_NAME, 'VM Action', mousebutton=core.mvMouseButton_Right, modal=True):
+            core.add_listbox('selected_vms', enabled=False, label='Selected VMs', default_value=-1)
+            core.set_item_color('selected_vms', core.mvGuiCol_TextDisabled,
+                                color=[0, 225, 129, 255])
+
             core.add_button('Cancel', callback=lambda: core.close_popup('VM Action'))
-            core.add_button('Copy VM ID', callback=lambda: copy_vm_id(VMS_TABLE_NAME))
-            core.add_button('Copy VM Details', callback=lambda: copy_vm_details(VMS_TABLE_NAME))
-            core.add_button('Copy VM Info', callback=lambda: copy_vm_info(VMS_TABLE_NAME))
-            core.add_button('Get NSG Info', callback=lambda: get_nsg_info(VMS_TABLE_NAME))
 
             core.add_separator()
             core.add_spacing(count=1)
+
+            core.add_button('Copy VM ID', callback=copy_vm_id)
+            core.add_button('Copy VM Details', callback=copy_vm_details)
+            core.add_button('Copy VM Info', callback=copy_vm_info)
+            core.add_button('Get NSG Info', callback=get_nsg_info)
+
+            core.add_separator()
+            core.add_spacing(count=1)
+
             core.add_combo(
                 'script-to-execute',
                 label='Script to Execute',
@@ -635,29 +623,25 @@ def vms_tab():
                 label='Parameters',
                 default_value='"Name=Value" "Item=Something"'
             )
-            core.add_button('Execute Script',
-                            callback=lambda: execute_script_action(VMS_TABLE_NAME))
-            core.add_button('RDP', callback=lambda: rdp_action(VMS_TABLE_NAME))
+            core.add_button('Execute Script', callback=execute_script_action)
+            core.add_button('RDP', callback=rdp_action)
 
             core.add_separator()
             core.add_spacing(count=1)
 
-            core.add_button('Start', callback=lambda: vm_action('start', VMS_TABLE_NAME))
-            core.add_button('Stop', callback=lambda: vm_action('stop', VMS_TABLE_NAME))
-            core.add_button('Restart', callback=lambda: vm_action('restart', VMS_TABLE_NAME))
-            core.add_button('Deallocate', callback=lambda: vm_action('deallocate', VMS_TABLE_NAME))
+            core.add_button('Start', callback=lambda: vm_action('start'))
+            core.add_button('Stop', callback=lambda: vm_action('stop'))
+            core.add_button('Restart', callback=lambda: vm_action('restart'))
+            core.add_button('Deallocate', callback=lambda: vm_action('deallocate'))
 
             core.add_separator()
             core.add_spacing(count=1)
 
-            core.add_button('Attach Disk',
-                            callback=lambda: vm_action('attach_disk', VMS_TABLE_NAME))
+            core.add_button('Attach Disk', callback=lambda: vm_action('attach_disk'))
 
-            core.add_button('Associate Public IP',
-                            callback=lambda: associate_public_ip(VMS_TABLE_NAME))
+            core.add_button('Associate Public IP', callback=associate_public_ip)
 
-            core.add_button('Dissociate Public IP',
-                            callback=lambda: dissociate_public_ip(VMS_TABLE_NAME))
+            core.add_button('Dissociate Public IP', callback=dissociate_public_ip)
 
             core.add_separator()
             core.add_spacing(count=1)
@@ -669,13 +653,12 @@ def vms_tab():
                 items=size_items
             )
             core.set_value('new_vm_size', size_items[0])
-            core.add_button('Resize', callback=lambda: vm_action(
-                'resize', VMS_TABLE_NAME))
+            core.add_button('Resize', callback=lambda: vm_action('resize'))
 
             core.add_separator()
             core.add_spacing(count=4)
 
-            core.add_button('Delete', callback=lambda: vm_action('delete', VMS_TABLE_NAME))
+            core.add_button('Delete', callback=lambda: vm_action('delete'))
             colorize_button('Delete')
 
 
@@ -704,12 +687,14 @@ def main():
                 themes = ['Dark', 'Light', 'Classic', 'Dark 2', 'Grey',
                           'Dark Grey', 'Cherry', 'Purple', 'Gold', 'Red']
                 core.add_combo('Themes', items=themes, default_value='Dark', callback=apply_theme)
+
         core.add_data('subscriptions', data=get_az_subscriptions())
         core.add_data('vm_size_data', data=get_vm_sizes())
         core.add_data('images', data=IMAGES)
         core.add_data('rg_data', data=get_rg_data())
         core.add_data('net_data', data=get_net_data())
         core.add_data('nsg_data', data=get_nsg_data())
+        core.add_data('selected_vms_data', data=[])
 
         with simple.tab_bar('tab_bar'):
             provision_tab()
@@ -720,4 +705,6 @@ def main():
 
 
 if __name__ == '__main__':
+    print('Cloud manager starting up...')
     main()
+    print('Cloud manager exited')
