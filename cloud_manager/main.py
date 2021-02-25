@@ -1,6 +1,8 @@
 from json import dumps
 import string
 
+import itertools
+
 from dearpygui import core, simple
 import pyperclip
 from pprint import pprint
@@ -146,45 +148,31 @@ def create_vm_action(sender, data):
     set_state(True)
 
 
-def get_selected_vms(table_name, selections):
+def get_selected_vms_by_rows(table_name, rows):
     name_column_index = 0
     resource_group_column_index = 2
 
-    vms_selected = {}
-    for selection in selections:
-        row = selection[0]
+    vms_selected = []
+    for row in rows:
         vm_name = core.get_table_item(table_name, row, name_column_index)
         resource_group = core.get_table_item(table_name, row, resource_group_column_index)
-        key = f'{resource_group}-{vm_name}'
-        if key not in vms_selected:
-            vms_selected[key] = {'name': vm_name, 'resource_group': resource_group}
+        vms_selected.append({'name': vm_name, 'resource_group': resource_group})
 
     return vms_selected
 
 
-def find_vms(vm_obj, vms_data, data_type='id'):
-    if data_type == 'id':
-        return next((vm.id for vm in vms_data if vm.name == vm_obj['name'] and vm.rg == vm_obj['resource_group']), None)
-
-    if data_type == 'dict':
-        return next((vm.__dict__ for vm in vms_data if vm.name == vm_obj['name'] and vm.rg == vm_obj['resource_group']), None)
-
-    if data_type == 'object':
-        return next((vm for vm in vms_data if vm.name == vm_obj['name'] and vm.rg == vm_obj['resource_group']), None)
+def find_vm(vm_obj, vms_data):
+    return next((vm for vm in vms_data if vm.name == vm_obj['name'] and vm.rg == vm_obj['resource_group']), None)
 
 
-def get_vm_ids(table_name, data_type='id'):
+def get_selected_vms(table_name):
     selections = core.get_table_selections(table_name)
+    rows = [s[0] for s in selections]
 
-    if not selections:
-        # core.close_popup('VM Action')
-        # print('Nothing selected...')
-        return
-
-    selected_vms = get_selected_vms(table_name, selections)
+    selected_vms = get_selected_vms_by_rows(table_name, rows)
     vms_data = core.get_data('vms_data')
 
-    return [find_vms(vm_obj, vms_data, data_type) for vm_obj in selected_vms.values()]
+    return [find_vm(vm_obj, vms_data) for vm_obj in selected_vms]
 
 
 def associate_public_ip():
@@ -303,6 +291,37 @@ def attach_disk_action(disk_ids):
         attach_az_disk(**props)
 
 
+def detach_disk_action():
+    print('VM Action: Detach')
+    disk_name = core.get_value('vm_data_disks')
+    data_disk_ids = core.get_data('data_disk_ids')
+    selected_vms = core.get_data('selected_vms_data')
+    subscription = get_current_subscription_vms(core.get_data('subscriptions'))
+
+    data_disk_id = next(
+        (disk_id for disk_id in data_disk_ids if disk_id.split('/')[-1] == disk_name), None)
+
+    if not data_disk_id:
+        print('[Detach action] Error: No data_disk_id found')
+        return
+
+    vm = next((vm for vm in selected_vms if data_disk_id in vm.data_disks), None)
+
+    if not vm:
+        print('[Detach action] Error: No VM found')
+        return
+
+    props = {
+        'vm_name': vm.name,
+        'disk_name': disk_name,
+        'resource_group': vm.rg,
+        'subscription': subscription
+    }
+
+    pprint(props, indent=2)
+    detach_az_disk(**props)
+
+
 def vm_action(action):
     set_state_popup(False)
     vm_objects = core.get_data('selected_vms_data')
@@ -319,20 +338,16 @@ def vm_action(action):
         'deallocate': lambda: az_vm_action(action, vm_ids),
         'resize': lambda: az_vm_resize(new_size, vm_ids),
         'attach_disk': lambda: attach_disk_action(vm_ids),
+        'detach_disk': lambda: detach_disk_action(),
         'delete': lambda: az_vm_delete(vm_ids),
     }
 
-    if vm_ids:
-        action_map[action]()
+    action_map[action]()
 
-        vms = [vm_id.split('/')[-1] for vm_id in vm_ids]
-        ok_msg = f'VM action {action} success for vms: {vms}'
-        core.log(logger=LOGGER, message=ok_msg)
-        print(ok_msg)
-    else:
-        err_msg = f'ERROR: vm_ids not found for VM action {action}'
-        core.log_error(logger=LOGGER, message=err_msg)
-        print(err_msg)
+    # vms = [vm_id.split('/')[-1] for vm_id in vm_ids]
+    # ok_msg = f'VM action {action} success for vms: {vms}'
+    # core.log(logger=LOGGER, message=ok_msg)
+    # print(ok_msg)
 
     set_state_popup(True)
     core.close_popup('VM Action')
@@ -348,10 +363,17 @@ def refresh_vms():
     for vm in core.get_data('vms_data'):
         core.add_row(VMS_TABLE_NAME, vm.get_values())
 
+    set_state(state=True)
+
+    core.configure_item('vm_data_disks', items=[])
+    core.set_value('vm_data_disks', '')
+
     core.configure_item('selected_vms', items=[])
     core.configure_item('selected_vms', num_items=0)
 
-    set_state(state=True)
+    core.add_data('selected_vms_data', [])
+
+    set_state_popup(False, include_cancel=False)
 
 
 def copy_vm_id():
@@ -461,16 +483,28 @@ def execute_script_action():
     core.close_popup('VM Action')
 
 
+def data_disk_controller(vm_objects):
+    data_disks = [vm.data_disks for vm in vm_objects] if vm_objects else []
+    data_disk_ids = list(itertools.chain(*data_disks))
+
+    data_disk_names = [disk_id.split('/')[-1] for disk_id in data_disk_ids]
+    core.add_data('data_disk_ids', data=data_disk_ids)
+    return data_disk_names
+
+
 def action_popup_controller():
-    vm_objects = get_vm_ids(VMS_TABLE_NAME, data_type='object')
+    vm_objects = get_selected_vms(VMS_TABLE_NAME)
     core.add_data('selected_vms_data', vm_objects)
 
     vms = [vm.name for vm in vm_objects] if vm_objects else []
+    data_disk_names = data_disk_controller(vm_objects)
 
+    core.configure_item('vm_data_disks', items=data_disk_names)
+    core.set_value('vm_data_disks', '')
     core.configure_item('selected_vms', items=vms)
     core.configure_item('selected_vms', num_items=len(vms))
 
-    set_state_popup(bool(vm_objects), False)
+    set_state_popup(bool(vm_objects), include_cancel=False)
 
 
 # ------------- TABS -------------
@@ -586,6 +620,8 @@ def vms_tab():
             callback=refresh_vms
         )
 
+        core.add_data('selected_data_disks', data={})
+
         core.add_data('vms_data', data=get_az_vms(
             get_current_subscription_vms(core.get_data('subscriptions'))))
 
@@ -596,7 +632,8 @@ def vms_tab():
             core.add_row(VMS_TABLE_NAME, vm.get_values())
 
         with simple.popup(VMS_TABLE_NAME, 'VM Action', mousebutton=core.mvMouseButton_Right, modal=True):
-            core.add_listbox('selected_vms', enabled=False, label='Selected VMs', default_value=-1)
+            core.add_listbox('selected_vms', enabled=False, items=[],
+                             label='Selected VMs', default_value=-1, num_items=0)
             core.set_item_color('selected_vms', core.mvGuiCol_TextDisabled,
                                 color=[0, 225, 129, 255])
 
@@ -605,10 +642,10 @@ def vms_tab():
             core.add_separator()
             core.add_spacing(count=1)
 
-            core.add_button('Copy VM ID', callback=copy_vm_id)
-            core.add_button('Copy VM Details', callback=copy_vm_details)
-            core.add_button('Copy VM Info', callback=copy_vm_info)
-            core.add_button('Get NSG Info', callback=get_nsg_info)
+            core.add_button('Copy VM ID', callback=copy_vm_id, enabled=False)
+            core.add_button('Copy VM Details', callback=copy_vm_details, enabled=False)
+            core.add_button('Copy VM Info', callback=copy_vm_info, enabled=False)
+            core.add_button('Get NSG Info', callback=get_nsg_info, enabled=False)
 
             core.add_separator()
             core.add_spacing(count=1)
@@ -616,32 +653,45 @@ def vms_tab():
             core.add_combo(
                 'script-to-execute',
                 label='Script to Execute',
-                items=get_scripts()
+                items=get_scripts(),
+                enabled=False
             )
             core.add_input_text(
                 'script_params',
                 label='Parameters',
-                default_value='"Name=Value" "Item=Something"'
+                default_value='"Name=Value" "Item=Something"',
+                enabled=False
             )
-            core.add_button('Execute Script', callback=execute_script_action)
-            core.add_button('RDP', callback=rdp_action)
+            core.add_button('Execute Script', callback=execute_script_action, enabled=False)
+            core.add_button('RDP', callback=rdp_action, enabled=False)
 
             core.add_separator()
             core.add_spacing(count=1)
 
-            core.add_button('Start', callback=lambda: vm_action('start'))
-            core.add_button('Stop', callback=lambda: vm_action('stop'))
-            core.add_button('Restart', callback=lambda: vm_action('restart'))
-            core.add_button('Deallocate', callback=lambda: vm_action('deallocate'))
+            core.add_button('Start', callback=lambda: vm_action('start'), enabled=False)
+            core.add_button('Stop', callback=lambda: vm_action('stop'), enabled=False)
+            core.add_button('Restart', callback=lambda: vm_action('restart'), enabled=False)
+            core.add_button('Deallocate', callback=lambda: vm_action('deallocate'), enabled=False)
 
             core.add_separator()
             core.add_spacing(count=1)
 
-            core.add_button('Attach Disk', callback=lambda: vm_action('attach_disk'))
+            core.add_button('Attach Disk', callback=lambda: vm_action('attach_disk'), enabled=False)
+            core.add_button('Detach Disk', callback=lambda: vm_action('detach_disk'), enabled=False)
+            core.add_same_line()
+            core.add_combo(
+                'vm_data_disks',
+                label='Data Disks',
+                items=[],
+                enabled=False
+            )
 
-            core.add_button('Associate Public IP', callback=associate_public_ip)
+            core.add_separator()
+            core.add_spacing(count=1)
 
-            core.add_button('Dissociate Public IP', callback=dissociate_public_ip)
+            core.add_button('Associate Public IP', callback=associate_public_ip, enabled=False)
+
+            core.add_button('Dissociate Public IP', callback=dissociate_public_ip, enabled=False)
 
             core.add_separator()
             core.add_spacing(count=1)
@@ -650,15 +700,16 @@ def vms_tab():
             core.add_combo(
                 'new_vm_size',
                 label='Size',
-                items=size_items
+                items=size_items,
+                enabled=False
             )
             core.set_value('new_vm_size', size_items[0])
-            core.add_button('Resize', callback=lambda: vm_action('resize'))
+            core.add_button('Resize', callback=lambda: vm_action('resize'), enabled=False)
 
             core.add_separator()
             core.add_spacing(count=4)
 
-            core.add_button('Delete', callback=lambda: vm_action('delete'))
+            core.add_button('Delete', callback=lambda: vm_action('delete'), enabled=False)
             colorize_button('Delete')
 
 
