@@ -41,6 +41,7 @@ You can select your preferred theme from the `Settings` menu.
 - `Restart` VM
 - `Deallocate` VM
 - `Attach Disk` Attach & Create Disk to VM
+- `Detach Disk` Detach Disk from VM (not delete)
 - `Associate Public IP` Create and associate public IP to VM
 - `Dissociate Public IP` Dissociate and delete public IP from VM
 - `Resize` VM
