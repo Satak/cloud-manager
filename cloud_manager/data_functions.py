@@ -106,6 +106,7 @@ def set_state_popup(state, include_cancel=True):
     core.configure_item('Attach Disk', enabled=state)
     core.configure_item('vm_data_disks', enabled=state)
     core.configure_item('Detach Disk', enabled=state)
+    core.configure_item('delete_disk', enabled=state)
     core.configure_item('Associate Public IP', enabled=state)
     core.configure_item('Dissociate Public IP', enabled=state)
     core.configure_item('Resize', enabled=state)

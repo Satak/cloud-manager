@@ -27,10 +27,17 @@ def detach_az_disk(vm_name, disk_name, resource_group, subscription):
 
 def attach_az_disk(vm_name, disk_name, resource_group, subscription, size=1, sku='Standard_LRS'):
     cmd = f'az vm disk attach --name {disk_name} --new --vm-name {vm_name} --size-gb {size} --sku {sku} --resource-group {resource_group} --subscription "{subscription}"'
-
     print('Attach disk:')
     print(cmd)
     run_cmd(cmd, as_json=False)
+
+
+def delete_az_disk(disk_ids):
+    disk_ids_str = ' '.join(disk_ids)
+    cmd = f'az disk delete --ids {disk_ids_str} --yes --no-wait'
+    print('Delete disk:')
+    print(cmd)
+    run_cmd(cmd)
 
 
 def delete_az_resources(resource_ids):

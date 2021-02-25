@@ -41,6 +41,7 @@ from azure_functions import (
     attach_az_disk,
     get_az_vm_data_disk_ids,
     detach_az_disk,
+    delete_az_disk,
     execute_az_script,
     get_az_nsg_ids
 )
@@ -291,7 +292,7 @@ def attach_disk_action(disk_ids):
         attach_az_disk(**props)
 
 
-def detach_disk_action():
+def detach_disk_action(delete_disk=False):
     print('VM Action: Detach')
     disk_name = core.get_value('vm_data_disks')
     data_disk_ids = core.get_data('data_disk_ids')
@@ -318,8 +319,14 @@ def detach_disk_action():
         'subscription': subscription
     }
 
-    pprint(props, indent=2)
+    # pprint(props, indent=2)
     detach_az_disk(**props)
+
+    print(f'[{vm.name}] Detach disk [{disk_name}] OK')
+
+    if delete_disk:
+        print(f'Deleting disk {data_disk_id}')
+        delete_az_disk([data_disk_id])
 
 
 def vm_action(action):
@@ -327,6 +334,7 @@ def vm_action(action):
     vm_objects = core.get_data('selected_vms_data')
     vm_ids = [vm.id for vm in vm_objects]
 
+    delete_disk = core.get_value('delete_disk')
     size_name_data = core.get_value('new_vm_size')
     new_size = next(
         (size for size_name, size in VM_SIZES.items() if size_name_data.lower() == size_name.lower()), None)
@@ -338,7 +346,7 @@ def vm_action(action):
         'deallocate': lambda: az_vm_action(action, vm_ids),
         'resize': lambda: az_vm_resize(new_size, vm_ids),
         'attach_disk': lambda: attach_disk_action(vm_ids),
-        'detach_disk': lambda: detach_disk_action(),
+        'detach_disk': lambda: detach_disk_action(delete_disk),
         'delete': lambda: az_vm_delete(vm_ids),
     }
 
@@ -372,6 +380,8 @@ def refresh_vms():
     core.configure_item('selected_vms', num_items=0)
 
     core.add_data('selected_vms_data', [])
+
+    core.set_value('delete_disk', False)
 
     set_state_popup(False, include_cancel=False)
 
@@ -685,6 +695,7 @@ def vms_tab():
                 items=[],
                 enabled=False
             )
+            core.add_checkbox('delete_disk', label='Delete')
 
             core.add_separator()
             core.add_spacing(count=1)
