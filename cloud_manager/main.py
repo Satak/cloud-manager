@@ -170,7 +170,7 @@ def get_selected_vms(table_name):
     selections = core.get_table_selections(table_name)
     rows = [s[0] for s in selections]
 
-    selected_vms = get_selected_vms_by_rows(table_name, rows)
+    selected_vms = get_selected_vms_by_rows(table_name, set(rows))
     vms_data = core.get_data('vms_data')
 
     return [find_vm(vm_obj, vms_data) for vm_obj in selected_vms]
