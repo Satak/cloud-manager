@@ -137,7 +137,8 @@ def create_vm_action(sender, data):
         'nsg': nsg,
         'tags': tags,
         'public_ip': data['public_ip'],
-        'data_disks': data['data_disks']
+        'data_disks': data['data_disks'],
+        'data_disks_size': data['data_disks_size']
     }
 
     core.log_info(logger=LOGGER, message=f'Creating VM {data["vm_name"]}...')
@@ -598,9 +599,11 @@ def provision_tab():
 
         core.add_slider_int(
             'data_disks',
-            max_value=3,
+            max_value=5,
             label='Data Disks'
         )
+        core.add_input_int('data_disks_size', label='Data Disk Size GB', min_value=1, max_value=1024, min_clamped=True,
+                           max_clamped=True, default_value=1)
 
         core.add_spacing(count=2)
         core.add_separator()

@@ -18,6 +18,7 @@ def get_provision_data():
         'subnet': core.get_value('subnet'),
         'public_ip': core.get_value('public_ip'),
         'data_disks': core.get_value('data_disks'),
+        'data_disks_size': core.get_value('data_disks_size'),
         'size': core.get_value('vm_size'),
         'image': core.get_value('image'),
         'nsg': core.get_value('nsg_group')
@@ -78,6 +79,7 @@ def set_state(state=True):
     core.configure_item('vm_name', enabled=state)
     core.configure_item('image', enabled=state)
     core.configure_item('data_disks', enabled=state)
+    core.configure_item('data_disks_size', enabled=state)
     core.configure_item('nsg_group', enabled=state)
     core.configure_item('public_ip', enabled=state)
     core.configure_item('vm_size', enabled=state)

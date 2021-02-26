@@ -87,7 +87,7 @@ def az_vm_action(action, vm_ids):
     run_cmd(cmd, as_json=False)
 
 
-def create_az_vm(vm_name, subscription, resource_group, subnet_id, image, size, admin_username, admin_password, tags=None, nsg=None, public_ip=0, data_disks=0):
+def create_az_vm(vm_name, subscription, resource_group, subnet_id, image, size, admin_username, admin_password, tags=None, nsg=None, public_ip=0, data_disks=0, data_disks_size=1):
 
     vm_config = {
         'name': vm_name,
@@ -112,7 +112,7 @@ def create_az_vm(vm_name, subscription, resource_group, subnet_id, image, size, 
     cmd = f'az vm create {az_command_params} --no-wait'
 
     if data_disks:
-        data_disk_sizes = ['1' for _ in range(data_disks)]
+        data_disk_sizes = [f'{data_disks_size}' for _ in range(data_disks)]
         disks_param = f' --data-disk-sizes-gb {" ".join(data_disk_sizes)}'
         cmd += disks_param
 
