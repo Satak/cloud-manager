@@ -166,11 +166,8 @@ def find_vm(vm_obj, vms_data):
     return next((vm for vm in vms_data if vm.name == vm_obj['name'] and vm.rg == vm_obj['resource_group']), None)
 
 
-def get_selected_vms(table_name):
-    selections = core.get_table_selections(table_name)
-    rows = [s[0] for s in selections]
-
-    selected_vms = get_selected_vms_by_rows(table_name, set(rows))
+def get_selected_vms(table_name, rows):
+    selected_vms = get_selected_vms_by_rows(table_name, rows)
     vms_data = core.get_data('vms_data')
 
     return [find_vm(vm_obj, vms_data) for vm_obj in selected_vms]
@@ -503,7 +500,10 @@ def data_disk_controller(vm_objects):
 
 
 def action_popup_controller():
-    vm_objects = get_selected_vms(VMS_TABLE_NAME)
+    selections = core.get_table_selections(VMS_TABLE_NAME)
+    rows = set([s[0] for s in selections])
+
+    vm_objects = get_selected_vms(VMS_TABLE_NAME, rows)
     core.add_data('selected_vms_data', vm_objects)
 
     vms = [vm.name for vm in vm_objects] if vm_objects else []
@@ -669,8 +669,7 @@ def vms_tab():
             core.add_input_text(
                 'script_params',
                 label='Parameters',
-                default_value='"Name=Value" "Item=Something"',
-                enabled=False
+                default_value='"Name=Value" "Item=Something"'
             )
             core.add_button('Execute Script', callback=execute_script_action, enabled=False)
             core.add_button('RDP', callback=rdp_action, enabled=False)

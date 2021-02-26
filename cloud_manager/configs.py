@@ -1,11 +1,11 @@
 LOGGER = 'log'
 
 # Windows VM credentials
-ADMIN_USERNAME = 'cloud-admin'
-ADMIN_PASSWORD = 'soMeCompLexPassrd9!'  # CHANGE THIS!
+ADMIN_USERNAME = 'my-admin'
+ADMIN_PASSWORD = 'fjewiur7612!!cHHgaAAAcx'  # CHANGE THIS!
 
 # vm name prefix. This is part of the default VM name: <prefix-vm-date> e.g. `ab-vm-163835`
-VM_NAME_PREFIX = 'sk'
+VM_NAME_PREFIX = 'cm'
 
 MAIN_WINDOW_NAME = 'Cloud Manager'
 MAIN_WINDOW_SIZE = {'width': 900, 'height': 600}

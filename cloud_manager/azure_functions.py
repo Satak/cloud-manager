@@ -217,7 +217,9 @@ def get_az_vms(subscription):
     query = ', '.join(f'{key}: {val}' for key, val in query_props.items() if val)
 
     cmd = f'az vm list -d --query "[].{{{query}}}" --subscription "{subscription}"'
+    print(f'Running az vm list --subscription "{subscription}"...')
     vm_data = run_cmd(cmd)
+    print('az vm list done')
     vm_sizes = core.get_data('vm_size_data')
 
     def object_maker(vm_obj):
