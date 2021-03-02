@@ -1,3 +1,7 @@
+AZURE_ENABLED = True
+AWS_ENABLED = False
+AWS_REGION = 'eu-west-1'
+
 LOGGER = 'log'
 
 # Windows VM credentials

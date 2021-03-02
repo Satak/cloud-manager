@@ -58,3 +58,21 @@ class VirtualMachine:
             'IP Address',
             'OS'
         ]
+
+
+@dataclass
+class EC2Instance:
+    instance: any
+
+    @staticmethod
+    def get_headers():
+        return [
+            'Name',
+            'State'
+        ]
+
+    def get_values(self):
+        return [
+            next(tag['Value'] for tag in self.instance.tags if tag['Key'] == 'Name'),
+            self.instance.state['Name']
+        ]

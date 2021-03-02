@@ -16,6 +16,19 @@ You must install all these prerequisites and authenticate to Azure with az cli b
 - Install `pyperclip` (Python library: <https://github.com/asweigart/pyperclip>)
   - run `pip install pyperclip`
 
+### AWS
+
+Experimental AWS support added. Authenticate with `aws_access_key_id` and `aws_secret_access_key` from your file:
+
+- Linux: `~/.aws/credentials`
+- Windows: `C:\Users\<username>\.aws\credentials`
+
+```toml
+[default]
+aws_access_key_id = xxx
+aws_secret_access_key = xxx
+```
+
 ## Start
 
 To start the cloud manager just run the `main.py`

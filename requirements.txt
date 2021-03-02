@@ -1,2 +1,3 @@
 dearpygui
 pyperclip
+boto3

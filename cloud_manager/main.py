@@ -6,8 +6,9 @@ import itertools
 from dearpygui import core, simple
 import pyperclip
 from pprint import pprint
+import boto3
 
-from models import VirtualMachine
+from models import VirtualMachine, EC2Instance
 
 from configs import (
     MAIN_WINDOW_NAME,
@@ -18,7 +19,10 @@ from configs import (
     VM_SIZES,
     IMAGES,
     ADMIN_USERNAME,
-    ADMIN_PASSWORD
+    ADMIN_PASSWORD,
+    AZURE_ENABLED,
+    AWS_ENABLED,
+    AWS_REGION
 )
 
 from azure_functions import (
@@ -76,10 +80,11 @@ from data_functions import (
 
 VMS_TABLE_NAME = "Az VMs"
 
+ec2 = boto3.resource('ec2', AWS_REGION)
 
 core.set_main_window_title(MAIN_WINDOW_NAME)
 core.set_main_window_size(**MAIN_WINDOW_SIZE)
-core.set_main_window_resizable(False)
+core.set_main_window_resizable(True)
 
 
 def apply_theme():
@@ -518,6 +523,11 @@ def action_popup_controller():
     set_state_popup(bool(vm_objects), include_cancel=False)
 
 
+def get_ec2_instances():
+    vms = ec2.instances.all()
+
+    return [EC2Instance(vm) for vm in vms]
+
 # ------------- TABS -------------
 
 
@@ -741,9 +751,9 @@ def log_tab():
         )
 
 
-# ------------- MAIN -------------
-
-def main():
+def azure_window(enabled=True):
+    if not enabled:
+        return
 
     with simple.window(WINDOW_NAME, **WINDOW_SIZE, no_move=True, no_close=True, no_collapse=False, x_pos=0, y_pos=0, no_resize=True):
         with simple.menu_bar('Main Menu Bar'):
@@ -765,6 +775,28 @@ def main():
             vms_tab()
             log_tab()
 
+
+def aws_window(enabled=True):
+    if not enabled:
+        return
+
+    aws_orange = [247, 153, 25, 255]
+
+    with simple.window('AWS', **WINDOW_SIZE, no_move=True, no_close=True, no_collapse=False, x_pos=0, y_pos=20, no_resize=True):
+        core.set_item_color('AWS', core.mvGuiCol_TitleBgActive, color=aws_orange)
+
+        core.add_data('aws_ec2_data', data=get_ec2_instances())
+        core.add_table('aws_ec2_table', headers=EC2Instance.get_headers(), height=300, width=600)
+
+        for vm in core.get_data('aws_ec2_data'):
+            core.add_row('aws_ec2_table', vm.get_values())
+
+
+# ------------- MAIN -------------
+
+def main():
+    azure_window(AZURE_ENABLED)
+    aws_window(AWS_ENABLED)
     core.start_dearpygui()
 
 
