@@ -202,6 +202,7 @@ def get_az_vms(subscription):
 
     query_props = {
         'id': 'id',
+        'location': 'location',
         'name': 'name',
         'state': 'powerState',
         'rg': 'resourceGroup',
@@ -227,6 +228,7 @@ def get_az_vms(subscription):
 
         return {
             'id': vm_obj['id'],
+            'location': vm_obj['location'],
             'name': vm_obj['name'],
             'state': vm_obj['state'],
             'rg': vm_obj['rg'],

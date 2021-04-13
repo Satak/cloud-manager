@@ -21,7 +21,7 @@ def run_cmd(cmd, as_json=True):
 
         try:
             if not as_json:
-                return [line.decode().strip() for line in data.splitlines() if line.decode().strip()]
+                return [line.decode(encoding='UTF-8', errors='ignore').strip() for line in data.splitlines() if line.decode(encoding='UTF-8', errors='ignore').strip()]
 
             return loads(data)
         except Exception as err:

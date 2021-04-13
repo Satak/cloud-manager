@@ -5,6 +5,7 @@ from dataclasses import dataclass
 class VirtualMachine:
     """Class for Virtual Machine."""
     id: str
+    location: str
     name: str
     state: str
     rg: str
@@ -35,6 +36,7 @@ class VirtualMachine:
     def get_values(self):
         return [
             self.name,
+            self.location,
             self.simple_state,
             self.rg,
             self.cpu,
@@ -49,6 +51,7 @@ class VirtualMachine:
     def get_headers():
         return [
             'Name',
+            'Location',
             'State',
             'Resource Group',
             'CPU',
