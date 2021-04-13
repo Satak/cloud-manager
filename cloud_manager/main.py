@@ -157,7 +157,7 @@ def create_vm_action(sender, data):
 
 def get_selected_vms_by_rows(table_name, rows):
     name_column_index = 0
-    resource_group_column_index = 2
+    resource_group_column_index = 3
 
     vms_selected = []
     for row in rows:
@@ -512,7 +512,7 @@ def action_popup_controller():
     vm_objects = get_selected_vms(VMS_TABLE_NAME, rows)
     core.add_data('selected_vms_data', vm_objects)
 
-    vms = [vm.name for vm in vm_objects] if vm_objects else []
+    vms = [vm.name for vm in vm_objects if vm] if vm_objects else []
     data_disk_names = data_disk_controller(vm_objects)
 
     core.configure_item('vm_data_disks', items=data_disk_names)

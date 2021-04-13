@@ -5,8 +5,8 @@ from dataclasses import dataclass
 class VirtualMachine:
     """Class for Virtual Machine."""
     id: str
-    location: str
     name: str
+    location: str
     state: str
     rg: str
     size: str
